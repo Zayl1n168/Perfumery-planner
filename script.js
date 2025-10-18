@@ -18,15 +18,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultDisplay = document.getElementById('concentration-result');
     
     // NEW: Page Navigation Elements
-    const navButtons = document.querySelectorAll('.nav-button');
+    // Use querySelectorAll to get all buttons with the class 'nav-button'
+    const navButtons = document.querySelectorAll('.nav-button'); 
     const pageTracker = document.getElementById('page-tracker');
     const pageSettings = document.getElementById('page-settings');
 
-    // NEW: Material Image Placeholder Data (for future use)
-    const MATERIAL_IMAGES = { /* ... (your material image data remains here) */ };
+    // NOTE: Material Image Placeholder Data removed to align with your request to skip images.
 
-
-    // --- NEW: PAGE ROUTING LOGIC ---
+    // --- PAGE ROUTING LOGIC ---
 
     const navigateTo = (pageId) => {
         // Hide all pages
@@ -34,8 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
         pageSettings.style.display = 'none';
 
         // Show the selected page
-        document.getElementById(`page-${pageId}`).style.display = 'block';
-        
+        const targetPage = document.getElementById(`page-${pageId}`);
+        if (targetPage) {
+             targetPage.style.display = 'block';
+        }
+       
         // Update button styles
         navButtons.forEach(btn => {
             if (btn.dataset.page === pageId) {
@@ -57,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Utility Functions ---
 
     const loadFormulas = () => {
-        // ... (No change)
         try {
             const jsonString = localStorage.getItem(FORMULAS_STORAGE_KEY);
             return jsonString ? JSON.parse(jsonString) : [];
@@ -70,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const saveFormulas = (formulas) => {
-        // ... (No change)
         try {
             localStorage.setItem(FORMULAS_STORAGE_KEY, JSON.stringify(formulas));
             errorMessage.style.display = 'none';
@@ -82,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const parseNotes = (noteString) => {
-        // ... (No change)
         if (!noteString || noteString.trim() === "") {
             return [];
         }
@@ -90,12 +89,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const joinNotes = (notesArray) => {
-        // ... (No change)
         return Array.isArray(notesArray) ? notesArray.join(', ') : '';
     }
     
     const deleteFormula = (idToDelete) => {
-        // ... (No change)
         if (!confirm("Are you sure you want to delete this formula? This action cannot be undone.")) {
             return;
         }
@@ -111,12 +108,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- CALCULATOR LOGIC (No change) ---
+    // --- CALCULATOR LOGIC ---
+    
     const calculateConcentration = () => {
-        // ... (Function content remains the same)
         const oilVol = parseFloat(oilVolumeInput.value);
         const carrierVol = parseFloat(carrierVolumeInput.value);
-        // ... (rest of function)
+        
         if (isNaN(oilVol) || isNaN(carrierVol) || oilVol < 0 || carrierVol < 0) {
             resultDisplay.textContent = "Error: Please enter valid non-negative numbers.";
             return;
@@ -148,14 +145,71 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
 
-    // --- EDITING LOGIC (No change) ---
-    const startEditMode = (formula) => { /* ... (Content remains the same) */ };
-    const cancelEditMode = () => { /* ... (Content remains the same) */ };
-    const handleUpdate = (event) => { /* ... (Content remains the same) */ };
+    // --- EDITING LOGIC ---
+
+    const startEditMode = (formula) => {
+        document.getElementById('name').value = formula.name || '';
+        document.getElementById('launch_year').value = formula.launch_year || '';
+        document.getElementById('concentration').value = formula.concentration || '';
+        document.getElementById('sillage').value = formula.sillage || '';
+        document.getElementById('longevity').value = formula.longevity || '';
+        document.getElementById('gender').value = formula.gender || '';
+        document.getElementById('top_notes').value = joinNotes(formula.top_notes);
+        document.getElementById('middle_notes').value = joinNotes(formula.middle_notes);
+        document.getElementById('base_notes').value = joinNotes(formula.base_notes);
+        document.getElementById('personal_review').value = formula.personal_review || '';
+
+        formulaIdToEdit.value = formula.id;
+
+        saveButton.style.display = 'none';
+        updateButton.style.display = 'block';
+        cancelButton.style.display = 'block';
+        
+        form.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const cancelEditMode = () => {
+        form.reset();
+        formulaIdToEdit.value = '';
+        saveButton.style.display = 'block';
+        updateButton.style.display = 'none';
+        cancelButton.style.display = 'none';
+    };
+
+    const handleUpdate = (event) => {
+        event.preventDefault();
+        
+        const formulaId = parseInt(formulaIdToEdit.value);
+        if (!formulaId) return;
+
+        const formulas = loadFormulas();
+        const indexToUpdate = formulas.findIndex(f => f.id === formulaId);
+
+        if (indexToUpdate !== -1) {
+            const updatedFormula = {
+                id: formulaId,
+                name: document.getElementById('name').value.trim(),
+                launch_year: document.getElementById('launch_year').value,
+                concentration: document.getElementById('concentration').value,
+                sillage: document.getElementById('sillage').value,
+                longevity: document.getElementById('longevity').value,
+                gender: document.getElementById('gender').value,
+                top_notes: parseNotes(document.getElementById('top_notes').value),
+                middle_notes: parseNotes(document.getElementById('middle_notes').value),
+                base_notes: parseNotes(document.getElementById('base_notes').value),
+                personal_review: document.getElementById('personal_review').value.trim(),
+            };
+            
+            formulas[indexToUpdate] = updatedFormula;
+            saveFormulas(formulas);
+            renderAllFormulas();
+            cancelEditMode();
+        }
+    };
 
 
-    // --- RENDERING FUNCTIONS (No change) ---
-    // Note: Image hover functions are stripped out to align with your last request to skip them.
+    // --- RENDERING FUNCTIONS ---
+
     const createFormulaCard = (formula) => {
         const card = document.createElement('div');
         card.className = 'formula-card';
@@ -227,19 +281,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EVENT HANDLERS ---
 
-    // Form submission (No change)
-    form.addEventListener('submit', (event) => { /* ... (Content remains the same) */ });
+    form.addEventListener('submit', (event) => {
+        event.preventDefault(); 
+        
+        if (formulaIdToEdit.value) {
+            handleUpdate(event); 
+            return;
+        }
 
-    // Buttons and Filter (No change)
+        const newFormula = {
+            id: Date.now(), 
+            name: document.getElementById('name').value.trim(),
+            launch_year: document.getElementById('launch_year').value,
+            concentration: document.getElementById('concentration').value,
+            sillage: document.getElementById('sillage').value,
+            longevity: document.getElementById('longevity').value,
+            gender: document.getElementById('gender').value,
+            top_notes: parseNotes(document.getElementById('top_notes').value),
+            middle_notes: parseNotes(document.getElementById('middle_notes').value),
+            base_notes: parseNotes(document.getElementById('base_notes').value),
+            personal_review: document.getElementById('personal_review').value.trim(),
+        };
+
+        if (!newFormula.name) {
+            errorMessage.textContent = "Perfume Name is required.";
+            errorMessage.style.display = 'block';
+            return;
+        }
+
+        const formulas = loadFormulas();
+        formulas.push(newFormula);
+        saveFormulas(formulas);
+        renderAllFormulas();
+        form.reset();
+    });
+
     updateButton.addEventListener('click', handleUpdate);
     cancelButton.addEventListener('click', cancelEditMode);
     concentrationFilter.addEventListener('change', renderAllFormulas);
     calculateButton.addEventListener('click', calculateConcentration);
 
-    // NEW: Navigation Event Listeners
+    // CORRECTED: Navigation Event Listeners
     navButtons.forEach(button => {
         button.addEventListener('click', () => {
-            navigateTo(button.dataset.page);
+            // This reads the 'data-page' attribute (e.g., 'tracker' or 'settings')
+            navigateTo(button.dataset.page); 
         });
     });
 
