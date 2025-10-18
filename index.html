@@ -1,22 +1,21 @@
+    </main>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
     
     <script>
       // The configuration from your project:
       const firebaseConfig = {
-        apiKey: "AIzaSyAe2qcNrIGYBh8VW_rp8ASRi1G6tkqUZMA",
-        authDomain: "perfumery-planner.firebaseapp.com",
-        projectId: "perfumery-planner",
-        storageBucket: "perfumery-planner.firebasestorage.app",
-        messagingSenderId: "117069368025",
-        appId: "1:117069368025:web:51b0300dfc78c2ab284cc8"
-        // measurementId is not needed for this setup
+        // ... (YOUR CONFIG KEYS HERE) ...
       };
 
-      // Initialize Firebase (using the namespaced format)
+      // Initialize Firebase
       firebase.initializeApp(firebaseConfig);
 
       // Initialize Firestore (our database service)
       const db = firebase.firestore(); 
     </script>
-</head>
+
+    <script src="script.js"></script> 
+</body>
+</html>
