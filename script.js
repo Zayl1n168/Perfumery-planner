@@ -17,7 +17,7 @@ addMaterialForm.addEventListener('submit', (e) => {
     const name = document.getElementById('materialName').value;
     const volatility = document.getElementById('materialVolatility').value;
     const dilution = parseFloat(document.getElementById('materialDilution').value);
-    const density = parseFloat(document.getElementById('materialDensity').value); // <--- NEW LINE
+    const density = parseFloat(document.getElementById('materialDensity').value);
     
     // Create a unique ID for the material (for database/retrieval later)
     const newMaterial = {
@@ -25,7 +25,7 @@ addMaterialForm.addEventListener('submit', (e) => {
         name, 
         volatility, 
         dilution: dilution / 100, // Store as a decimal (e.g., 0.1 for 10%)
-        density // <--- ADDED density
+        density // ADDED density
     };
 
     rawMaterials.push(newMaterial);
@@ -41,7 +41,7 @@ function renderMaterialList() {
         li.innerHTML = `
             <span>${material.name}</span>
             <small>(${material.volatility} / ${material.dilution * 100}% / ${material.density} g/mL)</small>
-        `; // <--- NOW SHOWING DENSITY
+        `;
         materialListElement.appendChild(li);
     });
 }
@@ -74,13 +74,13 @@ addComponentBtn.addEventListener('click', () => {
         select.appendChild(option);
     });
 
-    // Create the VOLUME input field (CHANGED FROM WEIGHT)
+    // Create the VOLUME input field
     const volumeInput = document.createElement('input'); 
     volumeInput.type = 'number';
     volumeInput.min = '0.001';
     volumeInput.step = '0.001';
-    volumeInput.placeholder = 'Volume (mL)'; // <--- NEW PLACHEHOLDER
-    volumeInput.name = 'volume'; // <--- NEW NAME ATTRIBUTE
+    volumeInput.placeholder = 'Volume (mL)'; 
+    volumeInput.name = 'volume'; 
     
     // Create the remove button
     const removeBtn = document.createElement('button');
@@ -93,14 +93,14 @@ addComponentBtn.addEventListener('click', () => {
     });
 
     componentDiv.appendChild(select);
-    componentDiv.appendChild(volumeInput); // Append the volume input
+    componentDiv.appendChild(volumeInput);
     componentDiv.appendChild(removeBtn);
     
     componentInputsContainer.appendChild(componentDiv);
 
     // Attach event listeners for calculation whenever a value changes
     select.addEventListener('change', calculateMetrics);
-    volumeInput.addEventListener('input', calculateMetrics); // Listen to the volume input
+    volumeInput.addEventListener('input', calculateMetrics); 
     
     calculateMetrics(); // Recalculate after adding a new component
 });
@@ -114,7 +114,7 @@ function calculateMetrics() {
     
     components.forEach(componentDiv => {
         const materialId = parseInt(componentDiv.querySelector('select[name="material"]').value);
-        // ⚠️ Retrieving 'volume' in mL ⚠️
+        // Retrieving 'volume' in mL
         const volume_mL = parseFloat(componentDiv.querySelector('input[name="volume"]').value) || 0; 
         
         // Find the full material object from our materials array
@@ -131,7 +131,7 @@ function calculateMetrics() {
             const pureConcentrate = weight_g * material.dilution;
             
             // 2. Add to totals
-            totalWeight += weight_g; // Total weight is now in grams
+            totalWeight += weight_g; 
             totalConcentrateWeight += pureConcentrate;
         }
     });
@@ -139,11 +139,57 @@ function calculateMetrics() {
     // 3. Final Calculation (remains mass/mass for accuracy)
     const fragranceConcentration = (totalConcentrateWeight / totalWeight) * 100 || 0;
 
-    // 4. Update the display (still showing grams for total mass)
+    // 4. Update the display 
     document.getElementById('totalWeight').textContent = totalWeight.toFixed(3) + 'g';
     document.getElementById('concPercentage').textContent = fragranceConcentration.toFixed(2) + '%';
+    
+    // 5. CALL THE NEW PYRAMID RENDER FUNCTION
+    renderPyramid(); 
 }
 
+// --- NEW FUNCTION: RENDER OLFACTORY PYRAMID ---
+function renderPyramid() {
+    // 1. Clear previous content
+    document.getElementById('pyramidTop').querySelector('.note-list').innerHTML = '';
+    document.getElementById('pyramidMiddle').querySelector('.note-list').innerHTML = '';
+    document.getElementById('pyramidBase').querySelector('.note-list').innerHTML = '';
+
+    // 2. Create arrays to hold notes for each level
+    const topNotes = [];
+    const middleNotes = [];
+    const baseNotes = [];
+
+    // 3. Loop through components and group them by Volatility
+    const components = componentInputsContainer.querySelectorAll('.formula-component');
+    
+    components.forEach(componentDiv => {
+        const materialId = componentDiv.querySelector('select[name="material"]').value;
+        const material = rawMaterials.find(m => m.id === parseInt(materialId));
+
+        // Only process if a material is actually selected
+        if (material) {
+            // Note: We use a Set or check for duplicates in a final version, but simple list for MVP
+            const noteTag = `<li>${material.name}</li>`;
+
+            switch (material.volatility) {
+                case 'Top':
+                    topNotes.push(noteTag);
+                    break;
+                case 'Middle':
+                    middleNotes.push(noteTag);
+                    break;
+                case 'Base':
+                    baseNotes.push(noteTag);
+                    break;
+            }
+        }
+    });
+
+    // 4. Render the grouped notes into the DOM
+    document.getElementById('pyramidTop').querySelector('.note-list').innerHTML = topNotes.join('');
+    document.getElementById('pyramidMiddle').querySelector('.note-list').innerHTML = middleNotes.join('');
+    document.getElementById('pyramidBase').querySelector('.note-list').innerHTML = baseNotes.join('');
+}
 
 // Placeholder for saving the formula (needs Firebase integration later)
 const createFormulaForm = document.getElementById('createFormulaForm');
