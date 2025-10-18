@@ -69,7 +69,7 @@ addComponentBtn.addEventListener('click', () => {
     select.innerHTML = '<option value="">-- Select Material --</option>';
     rawMaterials.forEach(material => {
         const option = document.createElement('option');
-        option.value = material.id;
+        option.value = material.id; // The ID is stored here as a string value
         option.textContent = material.name;
         select.appendChild(option);
     });
@@ -113,12 +113,12 @@ function calculateMetrics() {
     const components = componentInputsContainer.querySelectorAll('.formula-component');
     
     components.forEach(componentDiv => {
-        const materialId = parseInt(componentDiv.querySelector('select[name="material"]').value);
+        const materialId = componentDiv.querySelector('select[name="material"]').value;
         // Retrieving 'volume' in mL
         const volume_mL = parseFloat(componentDiv.querySelector('input[name="volume"]').value) || 0; 
         
-        // Find the full material object from our materials array
-        const material = rawMaterials.find(m => m.id === materialId);
+        // 🚨 FIX HERE: Ensure we convert the string ID from the select box to a number
+        const material = rawMaterials.find(m => m.id === parseInt(materialId));
         
         // Ensure material object, volume, AND density exist
         if (material && volume_mL > 0 && material.density) { 
@@ -147,7 +147,7 @@ function calculateMetrics() {
     renderPyramid(); 
 }
 
-// --- NEW FUNCTION: RENDER OLFACTORY PYRAMID ---
+// --- NEW FUNCTION: RENDER OLFACTORY PYRAMID (Ensured parseInt is used) ---
 function renderPyramid() {
     // 1. Clear previous content
     document.getElementById('pyramidTop').querySelector('.note-list').innerHTML = '';
@@ -164,6 +164,8 @@ function renderPyramid() {
     
     components.forEach(componentDiv => {
         const materialId = componentDiv.querySelector('select[name="material"]').value;
+        
+        // 🚨 FIX HERE: We must convert the string ID to an integer before lookup
         const material = rawMaterials.find(m => m.id === parseInt(materialId));
 
         // Only process if a material is actually selected
