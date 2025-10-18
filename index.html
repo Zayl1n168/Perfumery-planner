@@ -11,6 +11,24 @@
 <div class="container">
     <h1>Perfume Formula Tracker</h1>
     
+    <div class="calculator-section" style="padding: 15px; border: 1px solid #c9c9ff; border-radius: 6px; margin-bottom: 20px; background-color: #f8f8ff;">
+        <h3>Concentration Calculator (Oil %)</h3>
+        <div style="display: flex; gap: 20px; align-items: flex-end;">
+            <div class="form-group" style="flex-grow: 1;">
+                <label for="oil-volume">Total Oil/Compound Volume (mL)</label>
+                <input type="number" id="oil-volume" min="0" step="0.01" placeholder="e.g., 2.5">
+            </div>
+            <div class="form-group" style="flex-grow: 1;">
+                <label for="carrier-volume">Total Carrier/Alcohol Volume (mL)</label>
+                <input type="number" id="carrier-volume" min="0" step="0.01" placeholder="e.g., 7.5">
+            </div>
+            <div style="flex-shrink: 0;">
+                <button type="button" id="calculate-concentration-btn" style="padding: 10px 15px; background-color: #5d5d81; color: white;">Calculate</button>
+            </div>
+        </div>
+        <p id="concentration-result" style="margin-top: 10px; font-weight: bold; font-size: 1.1em;"></p>
+    </div>
+
     <h2>Add New Formula</h2>
     <div id="error-message" class="error" style="display: none;"></div>
     
