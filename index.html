@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scent Architect MVP</title>
     <link rel="stylesheet" href="style.css">
-</head>
+    </head>
 <body>
 
     <header class="header">
@@ -18,6 +18,9 @@
             <h2>1. Your Raw Materials Library</h2>
             <form id="addMaterialForm">
                 <input type="text" id="materialName" placeholder="Material Name (e.g., Bergamot Oil)" required>
+                
+                <input type="number" id="materialDensity" placeholder="Density (g/mL, e.g., 0.95)" min="0.5" step="0.001" required>
+
                 <select id="materialVolatility" required>
                     <option value="">-- Select Note Position --</option>
                     <option value="Top">Top Note</option>
