@@ -4,11 +4,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const formulaList = document.getElementById('formula-list');
     const errorMessage = document.getElementById('error-message');
     
-    // Get the new buttons and hidden ID field
+    // Get the button/ID elements
     const saveButton = document.getElementById('save-formula-button');
     const updateButton = document.getElementById('update-formula-button');
     const cancelButton = document.getElementById('cancel-edit-button');
     const formulaIdToEdit = document.getElementById('formula-id-to-edit');
+    
+    // NEW: Get the filter element
+    const concentrationFilter = document.getElementById('concentration-filter');
 
     // --- Utility Functions ---
 
@@ -42,12 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return noteString.split(',').map(note => note.trim()).filter(note => note.length > 0);
     };
 
-    // Helper to join notes array back into a comma-separated string for the form
     const joinNotes = (notesArray) => {
         return Array.isArray(notesArray) ? notesArray.join(', ') : '';
     }
 
-    // --- NEW EDITING LOGIC ---
+    // --- EDITING LOGIC (from previous step) ---
 
     const startEditMode = (formula) => {
         // Populate the form fields with the formula data
@@ -86,13 +88,12 @@ document.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
         
         const formulaId = parseInt(formulaIdToEdit.value);
-        if (!formulaId) return; // Should not happen if in edit mode
+        if (!formulaId) return;
 
         const formulas = loadFormulas();
         const indexToUpdate = formulas.findIndex(f => f.id === formulaId);
 
         if (indexToUpdate !== -1) {
-            // Create a new updated formula object
             const updatedFormula = {
                 id: formulaId,
                 name: document.getElementById('name').value.trim(),
@@ -107,7 +108,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 personal_review: document.getElementById('personal_review').value.trim(),
             };
             
-            // Replace the old formula with the new one
             formulas[indexToUpdate] = updatedFormula;
             saveFormulas(formulas);
             renderAllFormulas();
@@ -116,9 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
 
-    // --- RENDERING FUNCTIONS (Updated) ---
+    // --- RENDERING FUNCTIONS (Updated for Filtering) ---
 
-    // Function to create the HTML for a single formula card (ADDED EDIT BUTTON)
     const createFormulaCard = (formula) => {
         const card = document.createElement('div');
         card.className = 'formula-card';
@@ -138,7 +137,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="edit-btn" data-id="${formula.id}">Edit Formula</button>
         `;
         
-        // Add event listener for the new Edit button
         card.querySelector('.edit-btn').addEventListener('click', () => {
             startEditMode(formula);
         });
@@ -157,27 +155,39 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     };
 
+    // MODIFIED: This function now accepts a filter value
     const renderAllFormulas = () => {
-        const formulas = loadFormulas();
-        formulaList.innerHTML = ''; // Clear existing list
+        const allFormulas = loadFormulas();
+        formulaList.innerHTML = ''; 
         
-        if (formulas.length === 0) {
+        const filterValue = concentrationFilter.value;
+
+        // Apply the filter
+        const filteredFormulas = allFormulas.filter(formula => {
+            if (filterValue === 'all') {
+                return true;
+            }
+            // Check if the formula's concentration matches the filter value
+            return formula.concentration === filterValue;
+        });
+        
+        if (allFormulas.length === 0) {
             formulaList.innerHTML = '<p>No saved formulas yet. Use the form above to add one!</p>';
+        } else if (filteredFormulas.length === 0) {
+            formulaList.innerHTML = `<p>No formulas found for Concentration: <strong>${filterValue}</strong>.</p>`;
         } else {
-            formulas.forEach(formula => {
+            filteredFormulas.forEach(formula => {
                 formulaList.appendChild(createFormulaCard(formula));
             });
         }
     };
 
-    // --- EVENT HANDLERS (Modified) ---
+    // --- EVENT HANDLERS (Added Filter Listener) ---
 
     form.addEventListener('submit', (event) => {
         event.preventDefault(); 
         
-        // Check if we are in EDIT mode (by checking the hidden ID)
         if (formulaIdToEdit.value) {
-            // If the user clicks Save while in edit mode, treat it as an update
             handleUpdate(event); 
             return;
         }
@@ -213,6 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle the explicit Update and Cancel buttons
     updateButton.addEventListener('click', handleUpdate);
     cancelButton.addEventListener('click', cancelEditMode);
+
+    // NEW: Add event listener to the filter dropdown
+    concentrationFilter.addEventListener('change', renderAllFormulas);
 
     // Initial load when the page is ready
     renderAllFormulas();
