@@ -82,13 +82,24 @@
             <textarea id="personal_review" rows="3"></textarea>
         </div>
 
-                <input type="hidden" id="formula-id-to-edit" value="">
+        <input type="hidden" id="formula-id-to-edit" value="">
         
         <button type="submit" id="save-formula-button" class="full-width">Save New Formula</button>
         <button type="button" id="update-formula-button" class="full-width" style="display:none;">Update Formula</button>
         <button type="button" id="cancel-edit-button" class="full-width" style="display:none; background-color: #e33e3e;">Cancel Edit</button>
 
     </form>
+
+    <div class="filter-controls" style="margin-bottom: 20px;">
+        <label for="concentration-filter" style="font-weight: bold;">Filter by Concentration:</label>
+        <select id="concentration-filter" style="padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            <option value="all">Show All</option>
+            <option value="EDP">Eau de Parfum (EDP)</option>
+            <option value="EDT">Eau de Toilette (EDT)</option>
+            <option value="Extrait">Extrait de Parfum</option>
+            <option value="EDC">Eau de Cologne (EDC)</option>
+        </select>
+    </div>
 
     <h2>Saved Formulas</h2>
     <div id="formula-list">
