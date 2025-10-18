@@ -1,32 +1,46 @@
+/* --- Global Styles and Typography --- */
 body {
-    font-family: sans-serif;
-    margin: 20px;
-    background-color: #f4f4f9;
-    color: #333;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    margin: 0;
+    padding: 20px 0;
+    background-color: #f0f2f5; /* Soft, light background */
+    color: #333333;
 }
 .container {
-    max-width: 900px;
+    max-width: 960px;
     margin: auto;
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: #ffffff;
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    position: relative;
 }
-h1, h2 {
-    color: #5d5d81;
-    border-bottom: 2px solid #5d5d81;
-    padding-bottom: 5px;
+h1 {
+    color: #4a4a4a; /* Deep Charcoal */
+    font-size: 2.2em;
+    font-weight: 300; /* Lighter weight for modern look */
+    border-bottom: 3px solid #bda888; /* Gold/Bronze accent line */
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+}
+h2 {
+    color: #6a6a6a;
+    font-size: 1.6em;
+    font-weight: 400;
+    margin-top: 30px;
     margin-bottom: 20px;
 }
-/* Updated form to use a 2-column grid */
+
+/* --- Form and Input Styles --- */
 form {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px 20px;
-    margin-bottom: 30px;
-    padding: 15px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+    gap: 25px 30px;
+    margin-bottom: 40px;
+    padding: 25px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #fdfdfd;
 }
 .form-group {
     display: flex;
@@ -36,76 +50,174 @@ form {
     grid-column: span 2;
 }
 label {
-    margin-bottom: 5px;
-    font-weight: bold;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #4a4a4a;
+    font-size: 0.95em;
 }
 input, select, textarea {
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 12px;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
     width: 100%;
     box-sizing: border-box;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: #bda888;
+    box-shadow: 0 0 0 3px rgba(189, 168, 136, 0.2);
+    outline: none;
 }
 textarea {
     resize: vertical;
+    min-height: 80px;
 }
+
+/* --- Button Styles (Refined) --- */
 button {
-    padding: 10px 15px;
-    background-color: #5d5d81;
+    padding: 12px 20px;
+    background-color: #5d5d81; /* Primary accent color */
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s, transform 0.1s;
+    font-weight: 500;
 }
 button:hover {
-    background-color: #434363;
+    background-color: #4a4a6a;
+    transform: translateY(-1px);
 }
-/* Updated formula list display */
+#cancel-edit-button {
+    background-color: #e33e3e; /* Red for destructive/cancellation action */
+}
+#cancel-edit-button:hover {
+    background-color: #cc2222;
+}
+.delete-btn {
+    background-color: #cc0000;
+    margin-left: 10px;
+}
+.delete-btn:hover {
+    background-color: #990000;
+}
+#calculate-concentration-btn {
+    padding: 10px 15px;
+    background-color: #bda888;
+}
+#calculate-concentration-btn:hover {
+    background-color: #a89476;
+}
+
+/* --- Calculator & Filter Styles --- */
+.calculator-section {
+    padding: 20px;
+    border: none !important;
+    border-radius: 8px;
+    background-color: #f7f7f7 !important;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 30px;
+}
+.filter-controls {
+    margin-bottom: 30px !important;
+}
+#concentration-filter {
+    padding: 10px;
+    border: 1px solid #cccccc;
+    border-radius: 6px;
+}
+
+/* --- Formula List and Cards --- */
 #formula-list {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
 }
 .formula-card {
-    border: 1px solid #b3b3e3;
-    padding: 15px;
-    border-radius: 6px;
-    background-color: #e6e6ff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e0e0e0;
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+}
+.formula-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
 }
 .formula-card h3 {
     margin-top: 0;
-    color: #3e3e66;
-    font-size: 1.2em;
+    color: #bda888; /* Gold accent for the title */
+    font-size: 1.4em;
+    font-weight: 500;
+    border-bottom: 1px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
 }
 .formula-card p {
-    margin: 5px 0;
+    margin: 4px 0;
     font-size: 0.9em;
+    color: #555555;
 }
-/* Styles for the new note structure */
 .note-category {
-    margin-top: 10px;
-    font-style: italic;
-    color: #666;
-    font-weight: bold;
+    margin-top: 15px;
+    font-style: normal;
+    font-weight: 600;
+    color: #4a4a4a;
+    font-size: 0.95em;
+    border-left: 3px solid #8888b1; /* Subtle purple-slate accent */
+    padding-left: 8px;
+    margin-bottom: 5px;
 }
 .note-list {
     list-style: none;
     padding: 0;
     margin: 5px 0 0 0;
     font-size: 0.85em;
+    line-height: 1.8;
 }
 .note-list li {
-    background: #fff;
+    background: #f5f5f5;
     display: inline-block;
-    padding: 2px 6px;
-    margin: 2px 5px 2px 0;
-    border-radius: 3px;
-    border: 1px solid #dcdcdc;
+    padding: 4px 10px;
+    margin: 2px 7px 2px 0;
+    border-radius: 20px; /* Pill-shaped tags */
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    position: relative;
+    z-index: 10;
+    color: #333;
 }
+.edit-btn, .delete-btn {
+    margin-top: 15px;
+    font-size: 0.85em;
+    padding: 8px 12px;
+}
+
+/* --- Error Message --- */
 .error {
-    color: red;
-    font-weight: bold;
-    margin-bottom: 15px;
+    color: #cc2222;
+    background-color: #ffe0e0;
+    border: 1px solid #ff9999;
+    padding: 10px;
+    border-radius: 4px;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+/* --- Media Queries for Mobile Responsiveness --- */
+@media (max-width: 768px) {
+    .container {
+        padding: 20px 15px;
+    }
+    form {
+        grid-template-columns: 1fr; /* Stack columns on smaller screens */
+        gap: 15px;
+    }
+    .full-width {
+        grid-column: span 1;
+    }
+    #formula-list {
+        grid-template-columns: 1fr; /* Single column for cards */
+    }
 }
