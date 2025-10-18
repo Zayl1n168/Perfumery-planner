@@ -41,7 +41,7 @@
                 <input type="text" id="formulaName" placeholder="Formula Name (e.g., Summer Breeze 01)" required>
 
                 <div id="componentInputs">
-                    </div>
+                </div>
 
                 <button type="button" id="addComponentBtn" class="secondary-btn">Add Component to Formula</button>
                 
@@ -53,7 +53,25 @@
                 <button type="submit" class="primary-btn save-btn">Save Formula</button>
                 <p class="safety-note">⚠️ **SAFETY NOTE:** This tool does not check IFRA limits. Always consult safety data.</p>
             </form>
-        </section>
+
+            <div class="pyramid-container">
+                <h3>Olfactory Pyramid</h3>
+                <div class="pyramid-chart">
+                    <div id="pyramidTop" class="pyramid-level top-note">
+                        <p class="level-label">Top Notes</p>
+                        <ul class="note-list"></ul>
+                    </div>
+                    <div id="pyramidMiddle" class="pyramid-level middle-note">
+                        <p class="level-label">Middle Notes</p>
+                        <ul class="note-list"></ul>
+                    </div>
+                    <div id="pyramidBase" class="pyramid-level base-note">
+                        <p class="level-label">Base Notes</p>
+                        <ul class="note-list"></ul>
+                    </div>
+                </div>
+            </div>
+            </section>
 
     </main>
 
