@@ -82,7 +82,12 @@
             <textarea id="personal_review" rows="3"></textarea>
         </div>
 
-        <button type="submit" class="full-width">Save Formula</button>
+                <input type="hidden" id="formula-id-to-edit" value="">
+        
+        <button type="submit" id="save-formula-button" class="full-width">Save New Formula</button>
+        <button type="button" id="update-formula-button" class="full-width" style="display:none;">Update Formula</button>
+        <button type="button" id="cancel-edit-button" class="full-width" style="display:none; background-color: #e33e3e;">Cancel Edit</button>
+
     </form>
 
     <h2>Saved Formulas</h2>
