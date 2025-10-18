@@ -9,9 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateButton = document.getElementById('update-formula-button');
     const cancelButton = document.getElementById('cancel-edit-button');
     const formulaIdToEdit = document.getElementById('formula-id-to-edit');
-    
-    // NEW: Get the filter element
     const concentrationFilter = document.getElementById('concentration-filter');
+    
+    // NEW: Get calculator elements
+    const oilVolumeInput = document.getElementById('oil-volume');
+    const carrierVolumeInput = document.getElementById('carrier-volume');
+    const calculateButton = document.getElementById('calculate-concentration-btn');
+    const resultDisplay = document.getElementById('concentration-result');
+
 
     // --- Utility Functions ---
 
@@ -48,8 +53,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const joinNotes = (notesArray) => {
         return Array.isArray(notesArray) ? notesArray.join(', ') : '';
     }
+    
+    // --- NEW CALCULATOR LOGIC ---
+    
+    const calculateConcentration = () => {
+        const oilVol = parseFloat(oilVolumeInput.value);
+        const carrierVol = parseFloat(carrierVolumeInput.value);
+        
+        // Basic Validation
+        if (isNaN(oilVol) || isNaN(carrierVol) || oilVol < 0 || carrierVol < 0) {
+            resultDisplay.textContent = "Error: Please enter valid non-negative numbers.";
+            return;
+        }
+        
+        const totalVolume = oilVol + carrierVol;
+        
+        if (totalVolume === 0) {
+            resultDisplay.textContent = "Total Volume cannot be zero.";
+            return;
+        }
 
-    // --- EDITING LOGIC (from previous step) ---
+        // Calculation: (Oil Volume / Total Volume) * 100
+        const percentage = ((oilVol / totalVolume) * 100).toFixed(2);
+        
+        let classification = '';
+        if (percentage >= 20) {
+            classification = 'Extrait de Parfum (20% - 40%)';
+        } else if (percentage >= 15) {
+            classification = 'Eau de Parfum (EDP) (15% - 20%)';
+        } else if (percentage >= 10) {
+            classification = 'Eau de Toilette (EDT) (10% - 15%)';
+        } else if (percentage >= 5) {
+            classification = 'Eau de Cologne (EDC) (5% - 10%)';
+        } else {
+            classification = 'Low Concentration Scent';
+        }
+
+        resultDisplay.innerHTML = `Concentration: <span style="color: #4CAF50;">${percentage}%</span> (Approx. ${classification})`;
+    };
+    
+
+    // --- EDITING LOGIC ---
 
     const startEditMode = (formula) => {
         // Populate the form fields with the formula data
@@ -72,7 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateButton.style.display = 'block';
         cancelButton.style.display = 'block';
         
-        // Scroll to the top of the form for easy editing
         form.scrollIntoView({ behavior: 'smooth' });
     };
 
@@ -116,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
 
-    // --- RENDERING FUNCTIONS (Updated for Filtering) ---
+    // --- RENDERING FUNCTIONS (For List and Filtering) ---
 
     const createFormulaCard = (formula) => {
         const card = document.createElement('div');
@@ -155,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     };
 
-    // MODIFIED: This function now accepts a filter value
     const renderAllFormulas = () => {
         const allFormulas = loadFormulas();
         formulaList.innerHTML = ''; 
@@ -167,7 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (filterValue === 'all') {
                 return true;
             }
-            // Check if the formula's concentration matches the filter value
             return formula.concentration === filterValue;
         });
         
@@ -182,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- EVENT HANDLERS (Added Filter Listener) ---
+    // --- EVENT HANDLERS ---
 
     form.addEventListener('submit', (event) => {
         event.preventDefault(); 
@@ -224,8 +265,12 @@ document.addEventListener('DOMContentLoaded', () => {
     updateButton.addEventListener('click', handleUpdate);
     cancelButton.addEventListener('click', cancelEditMode);
 
-    // NEW: Add event listener to the filter dropdown
+    // Filter listener
     concentrationFilter.addEventListener('change', renderAllFormulas);
+    
+    // NEW: Calculator listener
+    calculateButton.addEventListener('click', calculateConcentration);
+
 
     // Initial load when the page is ready
     renderAllFormulas();
