@@ -3,10 +3,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('formula-form');
     const formulaList = document.getElementById('formula-list');
     const errorMessage = document.getElementById('error-message');
+    
+    // Get the new buttons and hidden ID field
+    const saveButton = document.getElementById('save-formula-button');
+    const updateButton = document.getElementById('update-formula-button');
+    const cancelButton = document.getElementById('cancel-edit-button');
+    const formulaIdToEdit = document.getElementById('formula-id-to-edit');
 
     // --- Utility Functions ---
 
-    // Function to load formulas from localStorage
     const loadFormulas = () => {
         try {
             const jsonString = localStorage.getItem(FORMULAS_STORAGE_KEY);
@@ -19,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Function to save formulas to localStorage
     const saveFormulas = (formulas) => {
         try {
             localStorage.setItem(FORMULAS_STORAGE_KEY, JSON.stringify(formulas));
@@ -31,18 +35,90 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     
-    // Function to safely split a comma-separated string into an array of trimmed strings
     const parseNotes = (noteString) => {
         if (!noteString || noteString.trim() === "") {
             return [];
         }
-        // Splits by comma, trims whitespace, and filters out any empty strings
         return noteString.split(',').map(note => note.trim()).filter(note => note.length > 0);
     };
 
-    // --- Rendering Functions ---
+    // Helper to join notes array back into a comma-separated string for the form
+    const joinNotes = (notesArray) => {
+        return Array.isArray(notesArray) ? notesArray.join(', ') : '';
+    }
 
-    // Function to create the HTML for a single formula card
+    // --- NEW EDITING LOGIC ---
+
+    const startEditMode = (formula) => {
+        // Populate the form fields with the formula data
+        document.getElementById('name').value = formula.name || '';
+        document.getElementById('launch_year').value = formula.launch_year || '';
+        document.getElementById('concentration').value = formula.concentration || '';
+        document.getElementById('sillage').value = formula.sillage || '';
+        document.getElementById('longevity').value = formula.longevity || '';
+        document.getElementById('gender').value = formula.gender || '';
+        document.getElementById('top_notes').value = joinNotes(formula.top_notes);
+        document.getElementById('middle_notes').value = joinNotes(formula.middle_notes);
+        document.getElementById('base_notes').value = joinNotes(formula.base_notes);
+        document.getElementById('personal_review').value = formula.personal_review || '';
+
+        // Store the ID of the formula being edited
+        formulaIdToEdit.value = formula.id;
+
+        // Toggle buttons visibility
+        saveButton.style.display = 'none';
+        updateButton.style.display = 'block';
+        cancelButton.style.display = 'block';
+        
+        // Scroll to the top of the form for easy editing
+        form.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const cancelEditMode = () => {
+        form.reset();
+        formulaIdToEdit.value = '';
+        saveButton.style.display = 'block';
+        updateButton.style.display = 'none';
+        cancelButton.style.display = 'none';
+    };
+
+    const handleUpdate = (event) => {
+        event.preventDefault();
+        
+        const formulaId = parseInt(formulaIdToEdit.value);
+        if (!formulaId) return; // Should not happen if in edit mode
+
+        const formulas = loadFormulas();
+        const indexToUpdate = formulas.findIndex(f => f.id === formulaId);
+
+        if (indexToUpdate !== -1) {
+            // Create a new updated formula object
+            const updatedFormula = {
+                id: formulaId,
+                name: document.getElementById('name').value.trim(),
+                launch_year: document.getElementById('launch_year').value,
+                concentration: document.getElementById('concentration').value,
+                sillage: document.getElementById('sillage').value,
+                longevity: document.getElementById('longevity').value,
+                gender: document.getElementById('gender').value,
+                top_notes: parseNotes(document.getElementById('top_notes').value),
+                middle_notes: parseNotes(document.getElementById('middle_notes').value),
+                base_notes: parseNotes(document.getElementById('base_notes').value),
+                personal_review: document.getElementById('personal_review').value.trim(),
+            };
+            
+            // Replace the old formula with the new one
+            formulas[indexToUpdate] = updatedFormula;
+            saveFormulas(formulas);
+            renderAllFormulas();
+            cancelEditMode();
+        }
+    };
+
+
+    // --- RENDERING FUNCTIONS (Updated) ---
+
+    // Function to create the HTML for a single formula card (ADDED EDIT BUTTON)
     const createFormulaCard = (formula) => {
         const card = document.createElement('div');
         card.className = 'formula-card';
@@ -58,11 +134,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             <div class="note-category">Review:</div>
             <p>${formula.personal_review ? formula.personal_review.substring(0, 150) + (formula.personal_review.length > 150 ? '...' : '') : 'No review notes.'}</p>
+            
+            <button class="edit-btn" data-id="${formula.id}">Edit Formula</button>
         `;
+        
+        // Add event listener for the new Edit button
+        card.querySelector('.edit-btn').addEventListener('click', () => {
+            startEditMode(formula);
+        });
+
         return card;
     };
 
-    // Helper function to render an array of notes as a list
     const renderNotesList = (title, notes) => {
         if (!notes || notes.length === 0) {
             return `<p style="margin: 0 0 5px 0;"><strong>${title}:</strong> None listed</p>`;
@@ -74,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     };
 
-    // Function to render all formulas
     const renderAllFormulas = () => {
         const formulas = loadFormulas();
         formulaList.innerHTML = ''; // Clear existing list
@@ -88,12 +170,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- Event Handlers ---
+    // --- EVENT HANDLERS (Modified) ---
 
     form.addEventListener('submit', (event) => {
-        event.preventDefault(); // Stop the form from submitting normally
+        event.preventDefault(); 
+        
+        // Check if we are in EDIT mode (by checking the hidden ID)
+        if (formulaIdToEdit.value) {
+            // If the user clicks Save while in edit mode, treat it as an update
+            handleUpdate(event); 
+            return;
+        }
 
-        // Collect data from the form
+        // We are in NEW SAVE mode
         const newFormula = {
             id: Date.now(), 
             name: document.getElementById('name').value.trim(),
@@ -102,31 +191,28 @@ document.addEventListener('DOMContentLoaded', () => {
             sillage: document.getElementById('sillage').value,
             longevity: document.getElementById('longevity').value,
             gender: document.getElementById('gender').value,
-            
-            // Parse comma-separated notes into arrays
             top_notes: parseNotes(document.getElementById('top_notes').value),
             middle_notes: parseNotes(document.getElementById('middle_notes').value),
             base_notes: parseNotes(document.getElementById('base_notes').value),
-            
             personal_review: document.getElementById('personal_review').value.trim(),
         };
 
-        // Basic validation
         if (!newFormula.name) {
             errorMessage.textContent = "Perfume Name is required.";
             errorMessage.style.display = 'block';
             return;
         }
 
-        // Load existing formulas, add the new one, and save
         const formulas = loadFormulas();
         formulas.push(newFormula);
         saveFormulas(formulas);
-
-        // Re-render the list and reset the form
         renderAllFormulas();
         form.reset();
     });
+
+    // Handle the explicit Update and Cancel buttons
+    updateButton.addEventListener('click', handleUpdate);
+    cancelButton.addEventListener('click', cancelEditMode);
 
     // Initial load when the page is ready
     renderAllFormulas();
