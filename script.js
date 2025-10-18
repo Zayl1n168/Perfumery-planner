@@ -2,11 +2,10 @@
 // STEP 1: INITIALIZE ARRAYS (Temporarily replacing the database)
 // =========================================================
 let rawMaterials = []; // Stores user's available materials
-let currentFormulaComponents = []; // Stores materials currently in the formula being created
 
 
 // =========================================================
-// STEP 2: RAW MATERIAL LIBRARY LOGIC
+// STEP 2: RAW MATERIAL LIBRARY LOGIC (Updated for Density)
 // =========================================================
 
 const addMaterialForm = document.getElementById('addMaterialForm');
@@ -18,13 +17,15 @@ addMaterialForm.addEventListener('submit', (e) => {
     const name = document.getElementById('materialName').value;
     const volatility = document.getElementById('materialVolatility').value;
     const dilution = parseFloat(document.getElementById('materialDilution').value);
+    const density = parseFloat(document.getElementById('materialDensity').value); // <--- NEW LINE
     
     // Create a unique ID for the material (for database/retrieval later)
     const newMaterial = {
         id: Date.now(), 
         name, 
         volatility, 
-        dilution: dilution / 100 // Store as a decimal (e.g., 0.1 for 10%)
+        dilution: dilution / 100, // Store as a decimal (e.g., 0.1 for 10%)
+        density // <--- ADDED density
     };
 
     rawMaterials.push(newMaterial);
@@ -39,14 +40,14 @@ function renderMaterialList() {
         const li = document.createElement('li');
         li.innerHTML = `
             <span>${material.name}</span>
-            <small>(${material.volatility} / ${material.dilution * 100}%)</small>
-        `;
+            <small>(${material.volatility} / ${material.dilution * 100}% / ${material.density} g/mL)</small>
+        `; // <--- NOW SHOWING DENSITY
         materialListElement.appendChild(li);
     });
 }
 
 // =========================================================
-// STEP 3: FORMULA CREATION LOGIC
+// STEP 3: FORMULA CREATION LOGIC (Updated for mL input)
 // =========================================================
 
 const componentInputsContainer = document.getElementById('componentInputs');
@@ -73,13 +74,13 @@ addComponentBtn.addEventListener('click', () => {
         select.appendChild(option);
     });
 
-    // Create the weight input field
-    const weightInput = document.createElement('input');
-    weightInput.type = 'number';
-    weightInput.min = '0.001';
-    weightInput.step = '0.001';
-    weightInput.placeholder = 'Weight (g)';
-    weightInput.name = 'weight';
+    // Create the VOLUME input field (CHANGED FROM WEIGHT)
+    const volumeInput = document.createElement('input'); 
+    volumeInput.type = 'number';
+    volumeInput.min = '0.001';
+    volumeInput.step = '0.001';
+    volumeInput.placeholder = 'Volume (mL)'; // <--- NEW PLACHEHOLDER
+    volumeInput.name = 'volume'; // <--- NEW NAME ATTRIBUTE
     
     // Create the remove button
     const removeBtn = document.createElement('button');
@@ -92,46 +93,53 @@ addComponentBtn.addEventListener('click', () => {
     });
 
     componentDiv.appendChild(select);
-    componentDiv.appendChild(weightInput);
+    componentDiv.appendChild(volumeInput); // Append the volume input
     componentDiv.appendChild(removeBtn);
     
     componentInputsContainer.appendChild(componentDiv);
 
     // Attach event listeners for calculation whenever a value changes
     select.addEventListener('change', calculateMetrics);
-    weightInput.addEventListener('input', calculateMetrics);
+    volumeInput.addEventListener('input', calculateMetrics); // Listen to the volume input
     
     calculateMetrics(); // Recalculate after adding a new component
 });
 
 
 function calculateMetrics() {
-    let totalWeight = 0;
-    let totalConcentrateWeight = 0;
+    let totalWeight = 0; // Total mass in grams
+    let totalConcentrateWeight = 0; // Total mass of pure fragrance oil
     
     const components = componentInputsContainer.querySelectorAll('.formula-component');
     
     components.forEach(componentDiv => {
         const materialId = parseInt(componentDiv.querySelector('select[name="material"]').value);
-        const weight = parseFloat(componentDiv.querySelector('input[name="weight"]').value) || 0;
+        // ⚠️ Retrieving 'volume' in mL ⚠️
+        const volume_mL = parseFloat(componentDiv.querySelector('input[name="volume"]').value) || 0; 
         
         // Find the full material object from our materials array
         const material = rawMaterials.find(m => m.id === materialId);
         
-        if (material && weight > 0) {
-            // 1. Calculate the weight of the pure concentrate in this component
-            const pureConcentrate = weight * material.dilution;
+        // Ensure material object, volume, AND density exist
+        if (material && volume_mL > 0 && material.density) { 
+            
+            // --- CORE CONVERSION: Volume (mL) to Weight (g) ---
+            const weight_g = volume_mL * material.density; 
+            // ----------------------------------------------------
+
+            // 1. Calculate the weight of the pure concentrate (using grams)
+            const pureConcentrate = weight_g * material.dilution;
             
             // 2. Add to totals
-            totalWeight += weight;
+            totalWeight += weight_g; // Total weight is now in grams
             totalConcentrateWeight += pureConcentrate;
         }
     });
 
-    // 3. Final Calculation
+    // 3. Final Calculation (remains mass/mass for accuracy)
     const fragranceConcentration = (totalConcentrateWeight / totalWeight) * 100 || 0;
 
-    // 4. Update the display
+    // 4. Update the display (still showing grams for total mass)
     document.getElementById('totalWeight').textContent = totalWeight.toFixed(3) + 'g';
     document.getElementById('concPercentage').textContent = fragranceConcentration.toFixed(2) + '%';
 }
@@ -155,7 +163,7 @@ createFormulaForm.addEventListener('submit', (e) => {
     // In a real app, you would package up the formula name, components, 
     // and final metrics and send them to Firebase here!
     
-    alert(`Formula "${formulaName}" Saved! Total Weight: ${totalWeight.toFixed(3)}g, Concentration: ${concPercentage.toFixed(2)}%`);
+    alert(`Formula "${formulaName}" Saved! (This is a placeholder until Firebase is connected) Total Weight: ${totalWeight.toFixed(3)}g, Concentration: ${concPercentage.toFixed(2)}%`);
 
     // Reset the form (optional)
     createFormulaForm.reset();
