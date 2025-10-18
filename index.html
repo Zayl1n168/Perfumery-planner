@@ -1,80 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scent Architect MVP</title>
-    <link rel="stylesheet" href="style.css">
-    </head>
-<body>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <script>
+      // The configuration from your project:
+      const firebaseConfig = {
+        apiKey: "AIzaSyAe2qcNrIGYBh8VW_rp8ASRi1G6tkqUZMA",
+        authDomain: "perfumery-planner.firebaseapp.com",
+        projectId: "perfumery-planner",
+        storageBucket: "perfumery-planner.firebasestorage.app",
+        messagingSenderId: "117069368025",
+        appId: "1:117069368025:web:51b0300dfc78c2ab284cc8"
+        // measurementId is not needed for this setup
+      };
 
-    <header class="header">
-        <h1>Scent Architect</h1>
-        <p>Personal Fragrance Formulation Tool</p>
-    </header>
+      // Initialize Firebase (using the namespaced format)
+      firebase.initializeApp(firebaseConfig);
 
-    <main class="container">
-        <section class="card material-section">
-            <h2>1. Your Raw Materials Library</h2>
-            <form id="addMaterialForm">
-                <input type="text" id="materialName" placeholder="Material Name (e.g., Bergamot Oil)" required>
-                
-                <input type="number" id="materialDensity" placeholder="Density (g/mL, e.g., 0.95)" min="0.5" step="0.001" required>
-
-                <select id="materialVolatility" required>
-                    <option value="">-- Select Note Position --</option>
-                    <option value="Top">Top Note</option>
-                    <option value="Middle">Middle Note</option>
-                    <option value="Base">Base Note</option>
-                </select>
-                <input type="number" id="materialDilution" placeholder="Dilution % (e.g., 10 for 10%)" min="1" max="100" required>
-                <button type="submit" class="primary-btn">Add Material</button>
-            </form>
-
-            <ul id="materialList" class="data-list">
-                </ul>
-        </section>
-
-        <section class="card formula-section">
-            <h2>2. Create New Formula</h2>
-            <form id="createFormulaForm">
-                <input type="text" id="formulaName" placeholder="Formula Name (e.g., Summer Breeze 01)" required>
-
-                <div id="componentInputs">
-                </div>
-
-                <button type="button" id="addComponentBtn" class="secondary-btn">Add Component to Formula</button>
-                
-                <div class="metrics">
-                    <p>Total Weight: <span id="totalWeight">0.00g</span></p>
-                    <p>Fragrance Conc.: <span id="concPercentage">0%</span></p>
-                </div>
-
-                <button type="submit" class="primary-btn save-btn">Save Formula</button>
-                <p class="safety-note">⚠️ **SAFETY NOTE:** This tool does not check IFRA limits. Always consult safety data.</p>
-            </form>
-
-            <div class="pyramid-container">
-                <h3>Olfactory Pyramid</h3>
-                <div class="pyramid-chart">
-                    <div id="pyramidTop" class="pyramid-level top-note">
-                        <p class="level-label">Top Notes</p>
-                        <ul class="note-list"></ul>
-                    </div>
-                    <div id="pyramidMiddle" class="pyramid-level middle-note">
-                        <p class="level-label">Middle Notes</p>
-                        <ul class="note-list"></ul>
-                    </div>
-                    <div id="pyramidBase" class="pyramid-level base-note">
-                        <p class="level-label">Base Notes</p>
-                        <ul class="note-list"></ul>
-                    </div>
-                </div>
-            </div>
-            </section>
-
-    </main>
-
-    <script src="script.js"></script> 
-</body>
-</html>
+      // Initialize Firestore (our database service)
+      const db = firebase.firestore(); 
+    </script>
+</head>
