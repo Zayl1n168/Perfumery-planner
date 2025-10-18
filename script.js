@@ -3,30 +3,69 @@
 // =========================================================
 
 let rawMaterials = []; // Global array to store materials loaded from the database
+let savedFormulas = []; // NEW: Global array to store saved formula objects
 
-// Function to fetch materials from the database when the app loads
+// --- Initial Data Load Function ---
 async function loadMaterials() {
     console.log("Loading materials from Firestore...");
     
-    // Safety check to ensure Firebase is ready
     if (typeof db === 'undefined') {
         console.warn("Firebase 'db' not initialized. Data persistence is disabled.");
         return; 
     }
     
-    // Wait for the data to be fetched
-    const snapshot = await db.collection('materials').get(); 
-    
-    rawMaterials = snapshot.docs.map(doc => ({
-        id: doc.id, // Use the Firestore STRING ID
+    // 1. Load Materials
+    const materialSnapshot = await db.collection('materials').get(); 
+    rawMaterials = materialSnapshot.docs.map(doc => ({
+        id: doc.id, 
         ...doc.data()
     }));
     
-    console.log("Materials loaded:", rawMaterials);
-    renderMaterialList(); // Display materials
+    // 2. Load Formulas 
+    await loadSavedFormulas();
+
+    renderMaterialList();
+    updateFormulaMaterialSelector();
     
-    // Update any existing formula selectors (crucial for loading data correctly)
-    updateFormulaMaterialSelector(); 
+    // Ensure metrics are clean when starting
+    calculateMetrics();
+}
+
+// --- NEW: Load Saved Formulas from Firebase ---
+async function loadSavedFormulas() {
+    // Order by timestamp so the newest (most recently saved) is at the top
+    const formulaSnapshot = await db.collection('formulas').orderBy('timestamp', 'desc').get();
+    savedFormulas = formulaSnapshot.docs.map(doc => ({
+        id: doc.id, // Store the Firestore STRING ID
+        ...doc.data()
+    }));
+    renderFormulaList();
+}
+
+// --- NEW: Render Saved Formulas List ---
+function renderFormulaList() {
+    const listElement = document.getElementById('savedFormulaList');
+    listElement.innerHTML = ''; // Clear existing list
+
+    if (savedFormulas.length === 0) {
+        listElement.innerHTML = '<li><small>No formulas saved yet.</small></li>';
+        return;
+    }
+
+    savedFormulas.forEach(formula => {
+        const li = document.createElement('li');
+        li.classList.add('formula-item'); // Add class for styling
+        
+        // Display name and concentration
+        li.innerHTML = `
+            <span>${formula.name}</span>
+            <small>${formula.concentration_pct.toFixed(2)}% | ${formula.totalWeight_g.toFixed(2)}g</small>
+        `;
+        
+        // Make the list item clickable to view the formula
+        li.addEventListener('click', () => viewFormula(formula.id));
+        listElement.appendChild(li);
+    });
 }
 
 // Function to update the dropdown options in existing formula component rows
@@ -99,7 +138,6 @@ function renderMaterialList() {
     materialListElement.innerHTML = '';
     rawMaterials.forEach(material => {
         const li = document.createElement('li');
-        // Note: material.id is now a string from Firestore
         li.innerHTML = `
             <span>${material.name}</span>
             <small>(${material.volatility} / ${material.dilution * 100}% / ${material.density} g/mL)</small>
@@ -109,12 +147,80 @@ function renderMaterialList() {
 }
 
 // =========================================================
-// STEP 3: FORMULA CREATION LOGIC (Calculations & Pyramid)
+// STEP 3: FORMULA CREATION/VIEWING LOGIC
 // =========================================================
 
 const componentInputsContainer = document.getElementById('componentInputs');
 const addComponentBtn = document.getElementById('addComponentBtn');
+const createFormulaForm = document.getElementById('createFormulaForm');
 
+// --- NEW: Load a Saved Formula into the Form ---
+function viewFormula(formulaId) {
+    const formula = savedFormulas.find(f => f.id === formulaId);
+    if (!formula) return;
+
+    // 1. Clear current components
+    componentInputsContainer.innerHTML = '';
+    
+    // 2. Set the Formula Name field
+    document.getElementById('formulaName').value = formula.name;
+
+    // 3. Add components back into the form
+    formula.components.forEach(component => {
+        // Create the necessary HTML elements for the component row
+        const componentDiv = document.createElement('div');
+        componentDiv.classList.add('formula-component');
+        
+        // --- Material Dropdown ---
+        const select = document.createElement('select');
+        select.name = 'material';
+        select.innerHTML = '<option value="">-- Select Material --</option>';
+        rawMaterials.forEach(material => {
+            const option = document.createElement('option');
+            option.value = material.id;
+            option.textContent = material.name;
+            // Set the saved material as selected
+            if (material.id === component.materialId) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+
+        // --- Volume Input ---
+        const volumeInput = document.createElement('input'); 
+        volumeInput.type = 'number';
+        volumeInput.min = '0.001';
+        volumeInput.step = '0.001';
+        volumeInput.placeholder = 'Volume (mL)'; 
+        volumeInput.name = 'volume'; 
+        volumeInput.value = component.volume_mL; // Set the saved volume
+
+        // --- Remove Button ---
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.textContent = 'X';
+        removeBtn.classList.add('remove-component-btn');
+        removeBtn.addEventListener('click', () => {
+            componentDiv.remove();
+            calculateMetrics();
+        });
+
+        componentDiv.appendChild(select);
+        componentDiv.appendChild(volumeInput);
+        componentDiv.appendChild(removeBtn);
+        componentInputsContainer.appendChild(componentDiv);
+
+        // Re-attach listeners for changes
+        select.addEventListener('change', calculateMetrics);
+        volumeInput.addEventListener('input', calculateMetrics);
+    });
+
+    // 4. Run calculation to update metrics and pyramid immediately
+    calculateMetrics();
+}
+
+
+// --- Component Adding Logic ---
 addComponentBtn.addEventListener('click', () => {
     if (rawMaterials.length === 0) {
         alert("Please add some materials to your Raw Materials Library first!");
@@ -150,7 +256,7 @@ addComponentBtn.addEventListener('click', () => {
     removeBtn.classList.add('remove-component-btn');
     removeBtn.addEventListener('click', () => {
         componentDiv.remove();
-        calculateMetrics(); // Recalculate after removal
+        calculateMetrics(); 
     });
 
     componentDiv.appendChild(select);
@@ -159,77 +265,59 @@ addComponentBtn.addEventListener('click', () => {
     
     componentInputsContainer.appendChild(componentDiv);
 
-    // Attach event listeners for calculation whenever a value changes
     select.addEventListener('change', calculateMetrics);
     volumeInput.addEventListener('input', calculateMetrics); 
     
-    calculateMetrics(); // Recalculate after adding a new component
+    calculateMetrics(); 
 });
 
 
+// --- Core Calculation Logic ---
 function calculateMetrics() {
-    let totalWeight = 0; // Total mass in grams
-    let totalConcentrateWeight = 0; // Total mass of pure fragrance oil
+    let totalWeight = 0; 
+    let totalConcentrateWeight = 0;
     
     const components = componentInputsContainer.querySelectorAll('.formula-component');
     
     components.forEach(componentDiv => {
-        // Material ID is read as a string value
         const materialId = componentDiv.querySelector('select[name="material"]').value;
         const volume_mL = parseFloat(componentDiv.querySelector('input[name="volume"]').value) || 0; 
         
-        // Find the material using the string ID
         const material = rawMaterials.find(m => m.id === materialId);
         
-        // Ensure material object, volume, AND density exist
         if (material && volume_mL > 0 && material.density) { 
-            
-            // --- CORE CONVERSION: Volume (mL) to Weight (g) ---
             const weight_g = volume_mL * material.density; 
-            // ----------------------------------------------------
-
-            // 1. Calculate the weight of the pure concentrate (using grams)
             const pureConcentrate = weight_g * material.dilution;
             
-            // 2. Add to totals
             totalWeight += weight_g; 
             totalConcentrateWeight += pureConcentrate;
         }
     });
 
-    // 3. Final Calculation (remains mass/mass for accuracy)
     const fragranceConcentration = (totalConcentrateWeight / totalWeight) * 100 || 0;
 
-    // 4. Update the display 
     document.getElementById('totalWeight').textContent = totalWeight.toFixed(3) + 'g';
     document.getElementById('concPercentage').textContent = fragranceConcentration.toFixed(2) + '%';
     
-    // 5. CALL THE PYRAMID RENDER FUNCTION
     renderPyramid(); 
 }
 
-// --- RENDER OLFACTORY PYRAMID ---
+// --- Olfactory Pyramid Rendering ---
 function renderPyramid() {
-    // 1. Clear previous content
     document.getElementById('pyramidTop').querySelector('.note-list').innerHTML = '';
     document.getElementById('pyramidMiddle').querySelector('.note-list').innerHTML = '';
     document.getElementById('pyramidBase').querySelector('.note-list').innerHTML = '';
 
-    // 2. Create arrays to hold notes for each level
     const topNotes = [];
     const middleNotes = [];
     const baseNotes = [];
 
-    // 3. Loop through components and group them by Volatility
     const components = componentInputsContainer.querySelectorAll('.formula-component');
     
     components.forEach(componentDiv => {
         const materialId = componentDiv.querySelector('select[name="material"]').value;
-        
-        // Find the full material object (using the string ID)
         const material = rawMaterials.find(m => m.id === materialId);
 
-        // Only process if a material is actually selected
         if (material) {
             const noteTag = `<li>${material.name}</li>`;
 
@@ -247,7 +335,6 @@ function renderPyramid() {
         }
     });
 
-    // 4. Render the grouped notes into the DOM
     document.getElementById('pyramidTop').querySelector('.note-list').innerHTML = topNotes.join('');
     document.getElementById('pyramidMiddle').querySelector('.note-list').innerHTML = middleNotes.join('');
     document.getElementById('pyramidBase').querySelector('.note-list').innerHTML = baseNotes.join('');
@@ -255,10 +342,8 @@ function renderPyramid() {
 
 
 // =========================================================
-// STEP 4: FORMULA SAVING LOGIC (SAVE to Firebase)
+// STEP 4: FORMULA SAVING LOGIC (SAVE to Firebase & RELOAD LIST)
 // =========================================================
-
-const createFormulaForm = document.getElementById('createFormulaForm');
 
 createFormulaForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -285,30 +370,31 @@ createFormulaForm.addEventListener('submit', async (e) => {
         const materialId = componentDiv.querySelector('select[name="material"]').value;
         const volume = parseFloat(componentDiv.querySelector('input[name="volume"]').value) || 0;
         
-        // Look up the material to save its name and volatility with the formula
         const material = rawMaterials.find(m => m.id === materialId);
 
         if (material) {
             componentsToSave.push({
                 materialId: material.id, 
-                name: material.name, // Save name for easy display later
+                name: material.name, 
                 volatility: material.volatility,
                 volume_mL: volume
             });
         }
     });
 
-    // Final Formula object to send to the 'formulas' collection
     const finalFormula = {
         name: formulaName,
         totalWeight_g: totalWeight,
         concentration_pct: concPercentage,
         components: componentsToSave,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp() // Adds a creation date
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
     
     // Save to the formulas collection
     await db.collection('formulas').add(finalFormula);
+
+    // After saving, reload the formula list to show the new one immediately
+    await loadSavedFormulas(); 
 
     alert(`Success! Formula "${formulaName}" has been saved to your database.`);
 
@@ -317,7 +403,3 @@ createFormulaForm.addEventListener('submit', async (e) => {
     componentInputsContainer.innerHTML = '';
     calculateMetrics();
 });
-
-// The initial call ensures everything loads when the script runs
-// The loadMaterials() function handles the data loading first.
-// calculateMetrics(); // This is no longer needed here as loadMaterials() calls it indirectly.
