@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scent Architect MVP</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header">
+        <h1>Scent Architect</h1>
+        <p>Personal Fragrance Formulation Tool</p>
+    </header>
+
+    <main class="container">
+        <section class="card material-section">
+            <h2>1. Your Raw Materials Library</h2>
+            <form id="addMaterialForm">
+                <input type="text" id="materialName" placeholder="Material Name (e.g., Bergamot Oil)" required>
+                <select id="materialVolatility" required>
+                    <option value="">-- Select Note Position --</option>
+                    <option value="Top">Top Note</option>
+                    <option value="Middle">Middle Note</option>
+                    <option value="Base">Base Note</option>
+                </select>
+                <input type="number" id="materialDilution" placeholder="Dilution % (e.g., 10 for 10%)" min="1" max="100" required>
+                <button type="submit" class="primary-btn">Add Material</button>
+            </form>
+
+            <ul id="materialList" class="data-list">
+                </ul>
+        </section>
+
+        <section class="card formula-section">
+            <h2>2. Create New Formula</h2>
+            <form id="createFormulaForm">
+                <input type="text" id="formulaName" placeholder="Formula Name (e.g., Summer Breeze 01)" required>
+
+                <div id="componentInputs">
+                    </div>
+
+                <button type="button" id="addComponentBtn" class="secondary-btn">Add Component to Formula</button>
+                
+                <div class="metrics">
+                    <p>Total Weight: <span id="totalWeight">0.00g</span></p>
+                    <p>Fragrance Conc.: <span id="concPercentage">0%</span></p>
+                </div>
+
+                <button type="submit" class="primary-btn save-btn">Save Formula</button>
+                <p class="safety-note">⚠️ **SAFETY NOTE:** This tool does not check IFRA limits. Always consult safety data.</p>
+            </form>
+        </section>
+
+    </main>
+
+    <script src="script.js"></script> 
+</body>
+</html>
