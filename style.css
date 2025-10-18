@@ -135,3 +135,81 @@ input[type="text"], input[type="number"], select {
     font-size: 0.9em;
     padding: 5px;
 }
+
+/* --- Olfactory Pyramid Styles (NEW) --- */
+.pyramid-container {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.pyramid-chart {
+    display: flex;
+    flex-direction: column-reverse; /* Puts Base on the bottom and Top on the top */
+    align-items: center;
+    width: 100%;
+    margin: 20px 0;
+}
+
+.pyramid-level {
+    width: 100%;
+    text-align: center;
+    border: 1px solid var(--color-primary);
+    margin-bottom: 5px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.pyramid-level .level-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+    padding-bottom: 5px;
+    border-bottom: 1px dotted rgba(255, 255, 255, 0.4);
+}
+
+.note-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.8em;
+}
+
+.note-list li {
+    display: inline-block;
+    padding: 3px 6px;
+    margin: 2px;
+    border-radius: 12px;
+    color: white; /* Notes text is white */
+    background-color: rgba(255, 255, 255, 0.2); /* Semi-transparent tag for contrast */
+}
+
+/* Specific Level Styling with your blue colors */
+
+/* Base Notes (Deepest Blue and Widest Look) */
+.base-note {
+    background-color: var(--color-primary); /* Deep Blue */
+    width: 100%; /* Full width */
+}
+.base-note .note-list li {
+    background-color: #2b3990; /* A darker shade for note tags */
+}
+
+/* Middle Notes (Medium Blue) */
+.middle-note {
+    background-color: #3f51b5; /* A slightly lighter, medium blue */
+    width: 80%; /* Shorter width for the pyramid shape */
+}
+.middle-note .note-list li {
+    background-color: #5d6ed2;
+}
+
+/* Top Notes (Vibrant Blue and Narrowest) */
+.top-note {
+    background-color: var(--color-secondary); /* Vibrant Blue */
+    width: 60%; /* Narrowest width */
+}
+.top-note .note-list li {
+    background-color: #64b5f6;
+}
