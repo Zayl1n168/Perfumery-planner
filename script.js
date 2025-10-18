@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formulaIdToEdit = document.getElementById('formula-id-to-edit');
     const concentrationFilter = document.getElementById('concentration-filter');
     
-    // NEW: Get calculator elements
+    // Get calculator elements
     const oilVolumeInput = document.getElementById('oil-volume');
     const carrierVolumeInput = document.getElementById('carrier-volume');
     const calculateButton = document.getElementById('calculate-concentration-btn');
@@ -54,13 +54,33 @@ document.addEventListener('DOMContentLoaded', () => {
         return Array.isArray(notesArray) ? notesArray.join(', ') : '';
     }
     
-    // --- NEW CALCULATOR LOGIC ---
+    // --- DELETE LOGIC (NEW) ---
+    
+    const deleteFormula = (idToDelete) => {
+        if (!confirm("Are you sure you want to delete this formula? This action cannot be undone.")) {
+            return;
+        }
+
+        let formulas = loadFormulas();
+        
+        // Filter out the formula with the matching ID
+        formulas = formulas.filter(f => f.id !== idToDelete);
+        
+        saveFormulas(formulas);
+        renderAllFormulas();
+        // If the user was editing the deleted formula, cancel edit mode
+        if (parseInt(formulaIdToEdit.value) === idToDelete) {
+            cancelEditMode();
+        }
+    };
+
+
+    // --- CALCULATOR LOGIC ---
     
     const calculateConcentration = () => {
         const oilVol = parseFloat(oilVolumeInput.value);
         const carrierVol = parseFloat(carrierVolumeInput.value);
         
-        // Basic Validation
         if (isNaN(oilVol) || isNaN(carrierVol) || oilVol < 0 || carrierVol < 0) {
             resultDisplay.textContent = "Error: Please enter valid non-negative numbers.";
             return;
@@ -73,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Calculation: (Oil Volume / Total Volume) * 100
         const percentage = ((oilVol / totalVolume) * 100).toFixed(2);
         
         let classification = '';
@@ -96,7 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- EDITING LOGIC ---
 
     const startEditMode = (formula) => {
-        // Populate the form fields with the formula data
         document.getElementById('name').value = formula.name || '';
         document.getElementById('launch_year').value = formula.launch_year || '';
         document.getElementById('concentration').value = formula.concentration || '';
@@ -108,10 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('base_notes').value = joinNotes(formula.base_notes);
         document.getElementById('personal_review').value = formula.personal_review || '';
 
-        // Store the ID of the formula being edited
         formulaIdToEdit.value = formula.id;
 
-        // Toggle buttons visibility
         saveButton.style.display = 'none';
         updateButton.style.display = 'block';
         cancelButton.style.display = 'block';
@@ -159,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
 
-    // --- RENDERING FUNCTIONS (For List and Filtering) ---
+    // --- RENDERING FUNCTIONS (MODIFIED for Delete Button) ---
 
     const createFormulaCard = (formula) => {
         const card = document.createElement('div');
@@ -178,10 +194,19 @@ document.addEventListener('DOMContentLoaded', () => {
             <p>${formula.personal_review ? formula.personal_review.substring(0, 150) + (formula.personal_review.length > 150 ? '...' : '') : 'No review notes.'}</p>
             
             <button class="edit-btn" data-id="${formula.id}">Edit Formula</button>
+            <button class="delete-btn" data-id="${formula.id}">Delete</button>
         `;
         
+        const formulaId = formula.id;
+
+        // Add event listener for the Edit button
         card.querySelector('.edit-btn').addEventListener('click', () => {
             startEditMode(formula);
+        });
+        
+        // Add event listener for the NEW Delete button
+        card.querySelector('.delete-btn').addEventListener('click', () => {
+            deleteFormula(formulaId);
         });
 
         return card;
@@ -204,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const filterValue = concentrationFilter.value;
 
-        // Apply the filter
         const filteredFormulas = allFormulas.filter(formula => {
             if (filterValue === 'all') {
                 return true;
@@ -233,10 +257,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // We are in NEW SAVE mode
+        // NEW SAVE mode
         const newFormula = {
             id: Date.now(), 
             name: document.getElementById('name').value.trim(),
+            // ... (rest of the fields are collected as before)
             launch_year: document.getElementById('launch_year').value,
             concentration: document.getElementById('concentration').value,
             sillage: document.getElementById('sillage').value,
@@ -261,16 +286,10 @@ document.addEventListener('DOMContentLoaded', () => {
         form.reset();
     });
 
-    // Handle the explicit Update and Cancel buttons
     updateButton.addEventListener('click', handleUpdate);
     cancelButton.addEventListener('click', cancelEditMode);
-
-    // Filter listener
     concentrationFilter.addEventListener('change', renderAllFormulas);
-    
-    // NEW: Calculator listener
     calculateButton.addEventListener('click', calculateConcentration);
-
 
     // Initial load when the page is ready
     renderAllFormulas();
