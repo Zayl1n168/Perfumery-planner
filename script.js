@@ -1,5 +1,7 @@
 Document.addEventListener('DOMContentLoaded', () => {
-    const FORMULAS_STORAGE_KEY = 'perfumeFormulas';
+    // We are now using a global 'db' reference initialized in index.html for Firebase Firestore
+    
+    // Get all primary DOM elements
     const form = document.getElementById('formula-form');
     const formulaList = document.getElementById('formula-list');
     const errorMessage = document.getElementById('error-message');
@@ -68,30 +70,23 @@ Document.addEventListener('DOMContentLoaded', () => {
         // Update button styles
         navButtons.forEach(btn => {
             if (btn.dataset.page === pageId) {
+                // Using class for active state (more robust than inline style)
+                btn.classList.add('active-nav');
                 btn.style.fontWeight = 'bold';
-                btn.style.textDecoration = 'underline';
             } else {
+                btn.classList.remove('active-nav');
                 btn.style.fontWeight = 'normal';
-                btn.style.textDecoration = 'none';
             }
         });
 
+        // Re-render formulas only if navigating to the tracker page
         if (pageId === 'tracker') {
             renderAllFormulas();
         }
     };
 
 
-    // --- Utility Functions (CRUD) ---
-
-    const loadFormulas = () => {
-        const json = localStorage.getItem(FORMULAS_STORAGE_KEY);
-        return json ? JSON.parse(json) : [];
-    };
-
-    const saveFormulas = (formulas) => {
-        localStorage.setItem(FORMULAS_STORAGE_KEY, JSON.stringify(formulas));
-    };
+    // --- Utility Functions (Parsing & Calculator) ---
     
     // Converts comma-separated string to clean array
     const parseNotes = (noteString) => {
@@ -105,15 +100,6 @@ Document.addEventListener('DOMContentLoaded', () => {
     const joinNotes = (notesArray) => {
         return Array.isArray(notesArray) ? notesArray.join(', ') : '';
     };
-
-    const deleteFormula = (idToDelete) => {
-        let formulas = loadFormulas();
-        formulas = formulas.filter(f => f.id !== idToDelete);
-        saveFormulas(formulas);
-        renderAllFormulas();
-    };
-
-    // --- Concentration Calculator ---
 
     const calculateConcentration = () => {
         const oilVolume = parseFloat(oilVolumeInput.value);
@@ -139,14 +125,65 @@ Document.addEventListener('DOMContentLoaded', () => {
         resultDisplay.style.color = '#006600';
     };
 
-    // --- Edit Mode Handlers ---
+    // --- FIREBASE CRUD IMPLEMENTATION ---
+    
+    // ASYNC: Deletes a formula from Firestore
+    const deleteFormula = async (idToDelete) => {
+        try {
+            await db.collection("formulas").doc(idToDelete).delete();
+            // List updates via onSnapshot listener
+        } catch (error) {
+            console.error("Error removing document: ", error);
+            alert("Failed to delete formula. Check the console for details.");
+        }
+    };
+
+    // ASYNC: Real-time data retrieval and rendering
+    const renderAllFormulas = () => {
+        const filterValue = concentrationFilter.value;
+        // Show loading status while connecting/waiting
+        formulaList.innerHTML = '<p id="loading-status">Connecting to database and loading formulas...</p>';
+
+        // Use onSnapshot for real-time updates
+        db.collection("formulas").onSnapshot(snapshot => {
+            const allFormulas = [];
+            snapshot.forEach(doc => {
+                // Get the Firestore document ID and all data
+                allFormulas.push({ ...doc.data(), id: doc.id });
+            });
+            
+            formulaList.innerHTML = ''; // Clear list
+
+            const filteredFormulas = allFormulas.filter(formula => {
+                if (filterValue === 'all') {
+                    return true;
+                }
+                return formula.concentration === filterValue;
+            });
+
+            if (allFormulas.length === 0) {
+                formulaList.innerHTML = '<p id="loading-status">No saved formulas yet. Use the form above to add one!</p>';
+            } else if (filteredFormulas.length === 0) {
+                formulaList.innerHTML = `<p id="loading-status">No formulas found for Concentration: <strong>${filterValue}</strong>.</p>`;
+            } else {
+                filteredFormulas.forEach(formula => {
+                    formulaList.appendChild(createFormulaCard(formula));
+                });
+            }
+        }, error => {
+            console.error("Firestore data retrieval error:", error);
+            formulaList.innerHTML = '<p style="color: red;">Error loading formulas. Check console for details.</p>';
+        });
+    };
+
+    // --- Rendering and Edit Handlers ---
     
     const startEditMode = (formula) => {
         // Populate form fields
         document.getElementById('name').value = formula.name;
         document.getElementById('launch_year').value = formula.launch_year;
         document.getElementById('concentration').value = formula.concentration;
-        scentFamilyInput.value = formula.scent_family || ''; // UPDATED: Load Scent Family
+        scentFamilyInput.value = formula.scent_family || ''; // Scent Family Load
         document.getElementById('sillage').value = formula.sillage;
         document.getElementById('longevity').value = formula.longevity;
         document.getElementById('gender').value = formula.gender;
@@ -155,7 +192,7 @@ Document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('base_notes').value = joinNotes(formula.base_notes);
         document.getElementById('personal_review').value = formula.personal_review;
 
-        // Set ID for update
+        // Set ID for update (this ID is the Firestore doc ID)
         formulaIdToEdit.value = formula.id;
 
         // Swap buttons
@@ -175,189 +212,9 @@ Document.addEventListener('DOMContentLoaded', () => {
         updateButton.style.display = 'none';
         cancelButton.style.display = 'none';
     };
-
-    // --- Rendering ---
-
+    
     const renderNotesList = (title, notes) => {
         if (!notes || notes.length === 0) return '';
+        // Note rendering simplified for this example - assuming notes are simple strings
         return `
-            <p style="margin-top: 5px; margin-bottom: 2px;">
-                <strong>${title}:</strong> ${notes.join(', ')}
-            </p>
-        `;
-    };
-
-    const createFormulaCard = (formula) => {
-        const card = document.createElement('div');
-        card.className = 'formula-card';
-        card.dataset.id = formula.id;
-
-        const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'center';
-
-        const title = document.createElement('h3');
-        title.textContent = formula.name;
-        header.appendChild(title);
-        
-        const buttonGroup = document.createElement('div');
-        const editBtn = document.createElement('button');
-        editBtn.textContent = 'Edit';
-        editBtn.className = 'edit-btn';
-        editBtn.addEventListener('click', () => startEditMode(formula));
-        
-        const deleteBtn = document.createElement('button');
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.className = 'delete-btn';
-        deleteBtn.addEventListener('click', () => {
-            if (confirm(`Are you sure you want to delete the formula: ${formula.name}?`)) {
-                deleteFormula(formula.id);
-            }
-        });
-        
-        buttonGroup.appendChild(editBtn);
-        buttonGroup.appendChild(deleteBtn);
-        header.appendChild(buttonGroup);
-        card.appendChild(header);
-
-        // UPDATED: Display Scent Family Tag
-        const familyInfo = document.createElement('p');
-        familyInfo.innerHTML = `<strong>Family:</strong> <span class="scent-tag">${formula.scent_family || 'N/A'}</span>`;
-        card.appendChild(familyInfo);
-        // END UPDATE
-
-        const details = document.createElement('div');
-        details.innerHTML = `
-            <p><strong>Year:</strong> ${formula.launch_year || 'N/A'}</p>
-            <p><strong>Concentration:</strong> ${formula.concentration || 'N/A'}</p>
-            <p><strong>Sillage:</strong> ${formula.sillage || 'N/A'}</p>
-            <p><strong>Longevity:</strong> ${formula.longevity || 'N/A'}</p>
-            <p><strong>Gender:</strong> ${formula.gender || 'N/A'}</p>
-        `;
-        card.appendChild(details);
-
-        const notesSection = document.createElement('div');
-        notesSection.innerHTML = `
-            <h4>Notes:</h4>
-            ${renderNotesList('Top', formula.top_notes)}
-            ${renderNotesList('Heart', formula.middle_notes)}
-            ${renderNotesList('Base', formula.base_notes)}
-        `;
-        card.appendChild(notesSection);
-
-        if (formula.personal_review) {
-             const review = document.createElement('div');
-             review.innerHTML = `
-                <h4>Review:</h4>
-                <p>${formula.personal_review}</p>
-             `;
-             card.appendChild(review);
-        }
-        
-        return card;
-    };
-
-    const renderAllFormulas = () => {
-        const allFormulas = loadFormulas();
-        formulaList.innerHTML = ''; 
-        
-        const filterValue = concentrationFilter.value;
-
-        const filteredFormulas = allFormulas.filter(formula => {
-            if (filterValue === 'all') {
-                return true;
-            }
-            return formula.concentration === filterValue;
-        });
-        
-        if (allFormulas.length === 0) {
-            formulaList.innerHTML = '<p id="loading-status">No saved formulas yet. Use the form above to add one!</p>';
-        } else if (filteredFormulas.length === 0) {
-            formulaList.innerHTML = `<p id="loading-status">No formulas found for Concentration: <strong>${filterValue}</strong>.</p>`;
-        } else {
-            filteredFormulas.forEach(formula => {
-                formulaList.appendChild(createFormulaCard(formula));
-            });
-        }
-    };
-    
-    // The handleUpdate function is implicitly covered by the form submit logic
-    // since we check formulaIdToEdit.value inside the submit handler.
-
-    // --- EVENT HANDLERS ---
-
-    form.addEventListener('submit', (event) => {
-        event.preventDefault();
-        
-        // Basic name validation
-        if (!document.getElementById('name').value.trim()) {
-            errorMessage.textContent = 'Perfume Name is required.';
-            errorMessage.style.display = 'block';
-            return;
-        }
-
-        errorMessage.style.display = 'none';
-
-        const newFormula = {
-            id: formulaIdToEdit.value ? parseInt(formulaIdToEdit.value) : Date.now(),
-            name: document.getElementById('name').value.trim(),
-            launch_year: document.getElementById('launch_year').value,
-            concentration: document.getElementById('concentration').value,
-            scent_family: scentFamilyInput.value, // UPDATED: Capture Scent Family
-            sillage: document.getElementById('sillage').value,
-            longevity: document.getElementById('longevity').value,
-            gender: document.getElementById('gender').value,
-            top_notes: parseNotes(document.getElementById('top_notes').value),
-            middle_notes: parseNotes(document.getElementById('middle_notes').value),
-            base_notes: parseNotes(document.getElementById('base_notes').value),
-            personal_review: document.getElementById('personal_review').value.trim()
-        };
-
-        let formulas = loadFormulas();
-        
-        // Logic to ADD or UPDATE
-        if (formulaIdToEdit.value) {
-            // Update logic
-            const index = formulas.findIndex(f => f.id === newFormula.id);
-            if (index !== -1) {
-                formulas[index] = newFormula;
-            }
-            cancelEditMode(); // Exit edit mode after update
-        } else {
-            // Add new logic
-            formulas.push(newFormula);
-        }
-
-        saveFormulas(formulas);
-        form.reset();
-        renderAllFormulas();
-    });
-
-    // The 'handleUpdate' function is now part of the submit listener, 
-    // but the button still needs its listener (which will trigger the submit)
-    // We can simplify this by just letting the submit handle it, but keep the 
-    // listener if you want a separate update mechanism. For now, we'll keep it simple:
-    updateButton.addEventListener('click', (event) => {
-        event.preventDefault(); // Prevent form default if any
-        form.dispatchEvent(new Event('submit')); // Manually submit the form
-    });
-    
-    cancelButton.addEventListener('click', cancelEditMode);
-    concentrationFilter.addEventListener('change', renderAllFormulas);
-    calculateButton.addEventListener('click', calculateConcentration);
-
-    navButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            navigateTo(button.dataset.page); 
-        });
-    });
-
-    // Dark Mode Toggle Listener
-    darkModeToggle.addEventListener('change', handleDarkModeToggle);
-
-
-    // Initial setup:
-    loadDarkModePreference();
-    navigateTo('tracker'); 
-});
+            <p style="margin-top: 5px; margin
