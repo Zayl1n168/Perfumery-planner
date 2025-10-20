@@ -167,6 +167,20 @@ button:hover {
     font-size: 0.9em;
     color: #555555;
 }
+
+/* --- NEW STYLE: Scent Family Tag --- */
+.scent-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    margin-left: 5px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #ffffff; 
+    background-color: #5d5d81; /* Primary accent color */
+}
+/* ----------------------------------- */
+
 .note-category {
     margin-top: 15px;
     font-style: normal;
@@ -263,6 +277,14 @@ body.dark-mode .formula-card:hover {
 body.dark-mode .formula-card h3 {
     color: #bda888;
 }
+
+/* --- NEW DARK MODE STYLE: Scent Family Tag --- */
+body.dark-mode .scent-tag {
+    background-color: #c9c9ff; /* A lighter shade for visibility */
+    color: #1a1a2e; /* Darker text for contrast */
+}
+/* --------------------------------------------- */
+
 body.dark-mode .note-list li {
     background: #3a3a3a;
     border-color: #555555;
