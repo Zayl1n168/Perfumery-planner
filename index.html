@@ -14,6 +14,11 @@
         .delete-btn:hover {
             background-color: #990000;
         }
+        /* New: Style for active navigation link */
+        .nav-button.active-nav {
+            font-weight: bold !important;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -21,7 +26,7 @@
 <div class="container">
     
     <nav style="margin-bottom: 25px; border-bottom: 1px solid #e0e0e0; padding-bottom: 10px;">
-        <button id="nav-tracker" class="nav-button" data-page="tracker" style="font-weight: bold;">Formula Tracker</button>
+        <button id="nav-tracker" class="nav-button active-nav" data-page="tracker">Formula Tracker</button>
         <button id="nav-settings" class="nav-button" data-page="settings" style="margin-left: 20px;">Settings</button>
     </nav>
 
@@ -87,6 +92,7 @@
                     <option value="Musk">Musk/Synthetic</option>
                 </select>
             </div>
+            
             <div class="form-group">
                 <label for="sillage">Sillage (Projection)</label>
                 <select id="sillage">
@@ -196,6 +202,24 @@
     <option value="Tuberose">
 </datalist>
 
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<script>
+    // *** IMPORTANT: REPLACE THE XXXXX VALUES WITH YOUR ACTUAL FIREBASE CONFIG ***
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY_XXXXX",
+        authDomain: "YOUR_AUTH_DOMAIN_XXXXX",
+        projectId: "YOUR_PROJECT_ID_XXXXX",
+        storageBucket: "YOUR_STORAGE_BUCKET_XXXXX",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID_XXXXX",
+        appId: "YOUR_APP_ID_XXXXX"
+    };
+
+    // Initialize Firebase and Firestore reference globally
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(); 
+</script>
 <script src="script.js"></script>
 
 </body>
