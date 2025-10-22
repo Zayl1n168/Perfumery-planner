@@ -1,317 +1,88 @@
-/* --- Global Styles and Typography --- */
-body {
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    margin: 0;
-    padding: 20px 0;
-    background-color: #f0f2f5; /* Soft, light background */
-    color: #333333;
-    transition: background-color 0.3s, color 0.3s; /* Smooth dark mode transition */
-}
-.container {
-    max-width: 960px;
-    margin: auto;
-    background: #ffffff;
-    padding: 40px 30px;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-    position: relative;
-    transition: background-color 0.3s, box-shadow 0.3s;
-}
-h1 {
-    color: #4a4a4a; /* Deep Charcoal */
-    font-size: 2.2em;
-    font-weight: 300; /* Lighter weight for modern look */
-    border-bottom: 3px solid #bda888; /* Gold/Bronze accent line */
-    padding-bottom: 10px;
-    margin-bottom: 30px;
-    transition: color 0.3s, border-bottom-color 0.3s;
-}
-h2 {
-    color: #6a6a6a;
-    font-size: 1.6em;
-    font-weight: 400;
-    margin-top: 30px;
-    margin-bottom: 20px;
-    transition: color 0.3s;
+/* Dark luxe Fragrantica-inspired theme */
+:root{
+  --bg:#0b0b0b; --card:#111; --muted:#bdbdbd; --text:#f3f3f3; --gold:#d4af37;
+  --accent:#5d5d81;
+  --family-floral:#e07ea0; --family-woody:#8b5a2b; --family-citrus:#f6c84c;
+  --family-gourmand:#c97b3a; --family-oriental:#b77fb7; --family-aromatic:#66b2b2;
 }
 
-/* --- Form and Input Styles --- */
-form {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 25px 30px;
-    margin-bottom: 40px;
-    padding: 25px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background-color: #fdfdfd;
-    transition: background-color 0.3s, border-color 0.3s;
+/* global */
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Helvetica Neue", Arial;}
+body{background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased;}
+.app{max-width:1200px;margin:24px auto;padding:18px}
+
+/* header */
+.app-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo-dot{width:38px;height:38px;border-radius:8px;background:linear-gradient(135deg,var(--gold),#a87e2b);box-shadow:0 4px 18px rgba(0,0,0,.6)}
+.app-header h1{margin:0;font-weight:600;font-size:1.2rem;color:var(--text)}
+.header-actions .nav-button{background:transparent;color:var(--muted);border:0;padding:8px 10px;border-radius:6px;cursor:pointer}
+.header-actions .nav-button.active-nav{color:var(--gold);font-weight:700;text-decoration:underline}
+
+/* layout */
+.main-grid{display:grid;grid-template-columns:320px 1fr;gap:20px}
+.left-pane{min-width:280px}
+.right-pane{}
+
+/* panels */
+.panel{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.02)}
+.panel h2,.panel h3{margin:0 0 12px 0;color:var(--text);font-weight:600}
+
+/* form */
+form .row{display:flex;gap:10px;margin-bottom:10px}
+form .row.small{align-items:center}
+label{display:block;font-size:0.85rem;color:var(--muted)}
+input[type="text"], input[type="number"], textarea, select{
+  width:100%;padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,.04);
+  background:#0f0f10;color:var(--text);outline:none;font-size:0.95rem;
 }
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-.full-width {
-    grid-column: span 2;
-}
-label {
-    margin-bottom: 6px;
-    font-weight: 600;
-    color: #4a4a4a;
-    font-size: 0.95em;
-    transition: color 0.3s;
-}
-input, select, textarea {
-    padding: 12px;
-    border: 1px solid #cccccc;
-    border-radius: 6px;
-    width: 100%;
-    box-sizing: border-box;
-    transition: border-color 0.3s, box-shadow 0.3s, background-color 0.3s, color 0.3s;
-}
-input:focus, select:focus, textarea:focus {
-    border-color: #bda888;
-    box-shadow: 0 0 0 3px rgba(189, 168, 136, 0.2);
-    outline: none;
-}
-textarea {
-    resize: vertical;
-    min-height: 80px;
+textarea{resize:vertical}
+.form-actions{display:flex;gap:8px;align-items:center;margin-top:10px}
+.btn{padding:10px 12px;border-radius:8px;border:0;background:#2a2a2a;color:var(--text);cursor:pointer}
+.btn.primary{background:linear-gradient(180deg,var(--gold),#b78c3a);color:#0b0b0b;font-weight:700}
+.btn.danger{background:#7a1f1f;color:#fff}
+
+/* calculator */
+.calc-result{margin-left:12px;color:var(--muted);font-weight:600}
+
+/* formula grid */
+.formula-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;margin-top:10px}
+.formula-card{display:flex;gap:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);align-items:flex-start}
+.card-thumb{width:92px;height:120px;border-radius:8px;background:linear-gradient(180deg,#222,#111);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.85rem;flex-shrink:0;position:relative;overflow:hidden}
+.card-thumb img{width:100%;height:100%;object-fit:cover;opacity:0.95;filter:grayscale(0.18) contrast(1.02)}
+.card-body{flex:1;display:flex;flex-direction:column;gap:6px}
+.card-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.card-title h3{margin:0;font-size:1.02rem;color:var(--gold)}
+.meta{color:var(--muted);font-size:0.85rem}
+.scent-tags{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.scent-tag{padding:4px 8px;border-radius:999px;font-weight:700;font-size:0.78rem;color:#0b0b0b}
+.scent-tag.floral{background:var(--family-floral)} .scent-tag.woody{background:var(--family-woody)}
+.scent-tag.citrus{background:var(--family-citrus)} .scent-tag.gourmand{background:var(--family-gourmand)}
+.scent-tag.oriental{background:var(--family-oriental)} .scent-tag.aromatic{background:var(--family-aromatic)}
+.note-actions{display:flex;gap:8px;align-items:center;margin-top:8px}
+.small-btn{padding:6px 8px;border-radius:8px;background:#151515;border:1px solid rgba(255,255,255,0.03);cursor:pointer;color:var(--muted)}
+
+/* pyramid collapsed area */
+.pyramid-wrap{width:160px;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.pyramid-toggle{background:transparent;border:0;color:var(--gold);cursor:pointer;font-weight:700}
+.pyramid{display:none; margin-top:8px;width:100%;text-align:right}
+.pyramid .cat{font-weight:700;color:var(--muted);font-size:0.82rem;margin-bottom:4px}
+.pyramid ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.pyramid li{background:#141414;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.03);color:var(--text);font-size:0.85rem}
+
+/* footer */
+.app-footer{text-align:center;color:var(--muted);margin-top:18px;font-size:0.85rem}
+
+/* responsive */
+@media (max-width: 900px){
+  .main-grid{grid-template-columns:1fr;gap:14px}
+  .formula-card{flex-direction:column}
+  .card-thumb{width:100%;height:160px}
+  .pyramid-wrap{width:100%;align-items:flex-start}
+  .pyramid{width:100%;text-align:left}
 }
 
-/* --- Button Styles (Refined) --- */
-button {
-    padding: 12px 20px;
-    background-color: #5d5d81; /* Primary accent color */
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.1s;
-    font-weight: 500;
-}
-button:hover {
-    background-color: #4a4a6a;
-    transform: translateY(-1px);
-}
-#cancel-edit-button {
-    background-color: #e33e3e; /* Red for destructive/cancellation action */
-}
-#cancel-edit-button:hover {
-    background-color: #cc2222;
-}
-.delete-btn {
-    background-color: #cc0000;
-    margin-left: 10px;
-}
-.delete-btn:hover {
-    background-color: #990000;
-}
-#calculate-concentration-btn {
-    padding: 10px 15px;
-    background-color: #bda888;
-}
-#calculate-concentration-btn:hover {
-    background-color: #a89476;
-}
-
-/* --- Calculator & Filter Styles --- */
-.calculator-section, .setting-group {
-    padding: 20px;
-    border: none !important;
-    border-radius: 8px;
-    background-color: #f7f7f7 !important;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
-    margin-bottom: 30px;
-    transition: background-color 0.3s, border-color 0.3s;
-}
-.filter-controls {
-    margin-bottom: 30px !important;
-}
-#concentration-filter {
-    padding: 10px;
-    border: 1px solid #cccccc;
-    border-radius: 6px;
-}
-
-/* --- Formula List and Cards --- */
-#formula-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 30px;
-}
-.formula-card {
-    border: 1px solid #e0e0e0;
-    padding: 20px;
-    border-radius: 8px;
-    background-color: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s, background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
-}
-.formula-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-}
-.formula-card h3 {
-    margin-top: 0;
-    color: #bda888; /* Gold accent for the title */
-    font-size: 1.4em;
-    font-weight: 500;
-    border-bottom: 1px solid #e0e0e0;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-    transition: color 0.3s, border-bottom-color 0.3s;
-}
-.formula-card p {
-    margin: 4px 0;
-    font-size: 0.9em;
-    color: #555555;
-}
-
-/* --- NEW STYLE: Scent Family Tag --- */
-.scent-tag {
-    display: inline-block;
-    padding: 3px 8px;
-    margin-left: 5px;
-    border-radius: 12px;
-    font-size: 0.85em;
-    font-weight: 600;
-    color: #ffffff; 
-    background-color: #5d5d81; /* Primary accent color */
-}
-/* ----------------------------------- */
-
-.note-category {
-    margin-top: 15px;
-    font-style: normal;
-    font-weight: 600;
-    color: #4a4a4a;
-    font-size: 0.95em;
-    border-left: 3px solid #8888b1; /* Subtle purple-slate accent */
-    padding-left: 8px;
-    margin-bottom: 5px;
-    transition: color 0.3s, border-left-color 0.3s;
-}
-.note-list {
-    list-style: none;
-    padding: 0;
-    margin: 5px 0 0 0;
-    font-size: 0.85em;
-    line-height: 1.8;
-}
-.note-list li {
-    background: #f5f5f5;
-    display: inline-block;
-    padding: 4px 10px;
-    margin: 2px 7px 2px 0;
-    border-radius: 20px; /* Pill-shaped tags */
-    border: 1px solid #e0e0e0;
-    cursor: pointer;
-    position: relative;
-    z-index: 10;
-    color: #333;
-    transition: background-color 0.3s, border-color 0.3s, color 0.3s;
-}
-.edit-btn, .delete-btn {
-    margin-top: 15px;
-    font-size: 0.85em;
-    padding: 8px 12px;
-}
-
-/* --- Error Message --- */
-.error {
-    color: #cc2222;
-    background-color: #ffe0e0;
-    border: 1px solid #ff9999;
-    padding: 10px;
-    border-radius: 4px;
-    font-weight: 500;
-    margin-bottom: 20px;
-}
-
-/* --- DARK MODE STYLES --- */
-body.dark-mode {
-    background-color: #121212; /* Very dark background */
-    color: #e0e0e0; /* Light text */
-}
-body.dark-mode .container {
-    background: #1e1e1e; /* Slightly lighter dark container */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-body.dark-mode h1, body.dark-mode h2 {
-    color: #f5f5f5;
-}
-body.dark-mode h1 {
-    border-bottom-color: #927e5e; /* Darker gold accent */
-}
-body.dark-mode label, 
-body.dark-mode .note-category, 
-body.dark-mode .formula-card p {
-    color: #cccccc;
-}
-body.dark-mode input, 
-body.dark-mode select, 
-body.dark-mode textarea {
-    background-color: #333333;
-    border-color: #444444;
-    color: #e0e0e0;
-}
-body.dark-mode .calculator-section,
-body.dark-mode .setting-group {
-    background-color: #2a2a2a !important;
-    border-color: #444444 !important;
-}
-body.dark-mode form {
-    background-color: #242424;
-    border-color: #444444;
-}
-body.dark-mode .formula-card {
-    background-color: #2c2c2c;
-    border-color: #444444;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-body.dark-mode .formula-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.6);
-}
-body.dark-mode .formula-card h3 {
-    color: #bda888;
-}
-
-/* --- NEW DARK MODE STYLE: Scent Family Tag --- */
-body.dark-mode .scent-tag {
-    background-color: #c9c9ff; /* A lighter shade for visibility */
-    color: #1a1a2e; /* Darker text for contrast */
-}
-/* --------------------------------------------- */
-
-body.dark-mode .note-list li {
-    background: #3a3a3a;
-    border-color: #555555;
-    color: #ffffff;
-}
-body.dark-mode .note-category {
-    border-left-color: #7d7d9e;
-}
-body.dark-mode .error {
-    background-color: #550000;
-    border-color: #ff5555;
-}
-
-
-/* --- Media Queries for Mobile Responsiveness --- */
-@media (max-width: 768px) {
-    .container {
-        padding: 20px 15px;
-    }
-    form {
-        grid-template-columns: 1fr; /* Stack columns on smaller screens */
-        gap: 15px;
-    }
-    .full-width {
-        grid-column: span 1;
-    }
-    #formula-list {
-        grid-template-columns: 1fr; /* Single column for cards */
-    }
-}
+/* small animation helpers */
+.pyramid-enter{animation:fadeIn .25s ease forwards}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
