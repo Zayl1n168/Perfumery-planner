@@ -1,20 +1,15 @@
-/* Modernized dual-theme (light default + dark) — updated palette */
-
-/* palette variables for light/dark toggling */
 :root{
-  --bg-light: #f6f4f1; --card-light:#ffffff; --text-light:#111;
-  --muted-light:#666; --gold:#d4af37; --accent:#5d5d81;
-
+  --bg-light:#f6f4f1; --card-light:#ffffff; --text-light:#111; --muted-light:#666;
   --bg-dark:#0b0b0b; --card-dark:#111214; --text-dark:#f3f3f3; --muted-dark:#bdbdbd;
+  --gold:#d4af37; --accent:#5d5d81;
+
   --family-floral:#e07ea0; --family-woody:#8b5a2b; --family-citrus:#f6c84c;
   --family-gourmand:#c97b3a; --family-oriental:#b77fb7; --family-aromatic:#66b2b2;
 }
 
-/* default (light) theme */
-body { font-family: Inter, system-ui, -apple-system, "Helvetica Neue", Arial; margin:0; background:var(--bg-light); color:var(--text-light); transition: background .25s, color .25s; }
+/* default (light) */
+body{font-family:Inter,system-ui,-apple-system,"Helvetica Neue",Arial;margin:0;background:var(--bg-light);color:var(--text-light);transition:background .25s,color .25s}
 .app{max-width:1200px;margin:24px auto;padding:18px}
-
-/* header */
 .app-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
 .brand{display:flex;align-items:center;gap:12px}
 .logo-dot{width:38px;height:38px;border-radius:8px;background:linear-gradient(135deg,var(--gold),#b78c3a)}
@@ -34,10 +29,7 @@ body { font-family: Inter, system-ui, -apple-system, "Helvetica Neue", Arial; ma
 /* forms */
 form .row{display:flex;gap:10px;margin-bottom:10px}
 label{display:block;font-size:0.9rem;color:var(--muted-light)}
-input[type="text"], input[type="number"], textarea, select{
-  width:100%;padding:9px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);
-  background:transparent;color:var(--text-light);outline:none;font-size:0.95rem;
-}
+input[type="text"], input[type="number"], textarea, select{width:100%;padding:9px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:transparent;color:var(--text-light);outline:none}
 textarea{resize:vertical}
 .form-actions{display:flex;gap:8px;align-items:center;margin-top:10px}
 .btn{padding:10px 12px;border-radius:8px;border:0;background:#2f2f2f;color:#fff;cursor:pointer}
@@ -67,7 +59,7 @@ textarea{resize:vertical}
 /* pyramid collapsed area */
 .pyramid-wrap{width:160px;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
 .pyramid-toggle{background:transparent;border:0;color:var(--gold);cursor:pointer;font-weight:700}
-.pyramid{display:none; margin-top:8px;width:100%;text-align:right}
+.pyramid{display:none;margin-top:8px;width:100%;text-align:right}
 .pyramid .cat{font-weight:700;color:var(--muted-light);font-size:0.82rem;margin-bottom:4px}
 .pyramid ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
 .pyramid li{background:#fafafa;padding:6px 10px;border-radius:999px;border:1px solid rgba(0,0,0,0.06);color:#111;font-size:0.85rem}
