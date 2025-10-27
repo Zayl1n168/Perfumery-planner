@@ -506,3 +506,33 @@ updateBtn.addEventListener('click', async () => {
 /* ---------- Boot / initial load ---------- */
 setActiveTab('home');
 loadPublicFeed(true);
+
+// === NAV DRAWER LOGIC ===
+const drawer = document.getElementById('drawer');
+const drawerOverlay = document.getElementById('drawer-overlay');
+const menuBtn = document.getElementById('menu-btn');
+const drawerClose = document.getElementById('drawer-close');
+const drawerItems = document.querySelectorAll('.drawer-item');
+
+function openDrawer() {
+  drawer.classList.add('open');
+  drawerOverlay.classList.add('show');
+}
+function closeDrawer() {
+  drawer.classList.remove('open');
+  drawerOverlay.classList.remove('show');
+}
+
+menuBtn.addEventListener('click', openDrawer);
+drawerClose.addEventListener('click', closeDrawer);
+drawerOverlay.addEventListener('click', closeDrawer);
+
+drawerItems.forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.dataset.page;
+    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    document.getElementById(`page-${page}`).style.display = 'block';
+    closeDrawer();
+  });
+});
+
