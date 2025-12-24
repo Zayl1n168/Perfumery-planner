@@ -22,7 +22,7 @@
         <div id="auth-area" class="auth-area">
           <button id="sign-in-btn" class="btn small">Sign in with Google</button>
           <div id="user-info" class="user-info" style="display:none">
-            <img id="user-avatar" class="avatar" alt="">
+            <img id="user-avatar" class="avatar" alt="User profile">
             <span id="user-name" class="user-name"></span>
             <button id="sign-out-btn" class="btn small">Sign out</button>
           </div>
@@ -35,7 +35,6 @@
       </div>
     </header>
 
-    <!-- NAV DRAWER -->
     <nav id="drawer" class="drawer">
       <div class="drawer-header">
         <h3>Menu</h3>
@@ -52,8 +51,7 @@
     <div id="drawer-overlay" class="drawer-overlay"></div>
 
     <main class="main">
-      <!-- existing page sections remain unchanged -->
-      <section id="page-home" class="page page-active">
+      <section id="page-home" class="page">
         <div class="panel controls">
           <div class="controls-row">
             <div class="filter-group">
@@ -100,19 +98,66 @@
       <section id="page-my" class="page" style="display:none">
         <div class="panel">
           <h2>My Formulas</h2>
-          <p class="muted">Your private formulas are visible only to you. Toggle “Public” to share.</p>
-          <div id="my-cards" class="card-grid" aria-live="polite"></div>
-          <p id="my-status" class="muted">Sign in to see your formulas.</p>
+          <p class="muted">Your private formulas are visible only to you.</p>
+          <div id="my-cards" class="card-grid"></div>
+          <p id="my-status" class="muted"></p>
         </div>
       </section>
 
       <section id="page-create" class="page" style="display:none">
         <div class="panel">
-          <h2>Create / Edit Formula</h2>
-          <div id="error-message" class="error" style="display:none"></div>
-          <!-- keep your form exactly as-is -->
+          <h2>Create New Formula</h2>
+          <div id="error-message" class="error" style="display:none; color: red; margin-bottom: 10px;"></div>
+          
           <form id="formula-form">
-            <!-- ... -->
+            <div class="form-group">
+              <label>Formula Name</label>
+              <input type="text" id="name" placeholder="Enter fragrance name" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Concentration</label>
+                <select id="concentration">
+                  <option value="EDP">EDP</option>
+                  <option value="EDT">EDT</option>
+                  <option value="EDC">EDC</option>
+                  <option value="Extrait">Extrait</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Gender</label>
+                <select id="gender">
+                  <option value="Unisex">Unisex</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Top Notes (comma separated)</label>
+              <textarea id="top_notes" placeholder="e.g. Lemon, Bergamot, Orange"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Middle Notes</label>
+              <textarea id="middle_notes" placeholder="e.g. Rose, Jasmine"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Base Notes</label>
+              <textarea id="base_notes" placeholder="e.g. Vanilla, Sandalwood"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="public-checkbox" checked>
+                <span>Make formula public</span>
+              </label>
+            </div>
+
+            <button type="submit" id="save-formula-button" class="btn primary">Save Formula</button>
           </form>
         </div>
       </section>
@@ -121,19 +166,11 @@
         <div class="panel">
           <h2>Settings</h2>
           <div class="settings-grid">
-            <div>
+            <div class="settings-card">
               <h4>Account</h4>
-              <p id="settings-account" class="muted">Sign in with Google to see account info.</p>
-              <button id="export-btn" class="btn">Export my formulas (.txt)</button>
-              <button id="delete-all-btn" class="btn danger">Remove all my formulas</button>
-            </div>
-            <div>
-              <h4>UI</h4>
-              <label><input id="ui-dark-toggle" type="checkbox"> Enable dark mode</label>
-            </div>
-            <div>
-              <h4>Data</h4>
-              <p class="muted">Photo upload is preview-only. For production use consider Firebase Storage.</p>
+              <p id="settings-account" class="muted">Manage your data</p>
+              <button id="export-btn" class="btn small">Export formulas (.txt)</button>
+              <button id="delete-all-btn" class="btn danger small">Clear Data</button>
             </div>
           </div>
         </div>
@@ -141,7 +178,7 @@
     </main>
 
     <footer class="app-footer">
-      <small>Made by Zayl1n168 • Complain Here https://github.com/Zayl1n168/Perfumery-planner/issues • NOT IFRA TESTED!!</small>
+      <small>Made by Zayl1n168 • NOT IFRA TESTED!!</small>
     </footer>
   </div>
 
