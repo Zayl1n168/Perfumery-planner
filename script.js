@@ -1,11 +1,11 @@
-// script.js — Perfumery Planner logic
+// script.js — Full Fragrance Maker Logic
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, query, where, orderBy, limit, getDocs, serverTimestamp 
+import { getFirestore, collection, addDoc, query, where, orderBy, limit, getDocs, serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut 
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
-/* ---------- Firebase Configuration ---------- */
+/* ---------- Firebase Setup ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyAe2qcNrIGYBh8VW_rp8ASRi1G6tkqUZMA",
   authDomain: "perfumery-planner.firebaseapp.com",
@@ -20,7 +20,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-/* ---------- DOM Element References ---------- */
+/* ---------- DOM Elements ---------- */
 const pages = {
   home: document.getElementById('page-home'),
   my: document.getElementById('page-my'),
@@ -34,7 +34,7 @@ const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawer-overlay');
 const menuBtn = document.getElementById('menu-btn');
 
-/* ---------- Theme Logic ---------- */
+/* ---------- Navigation & Theme ---------- */
 const applyTheme = (isDark) => {
   document.body.classList.toggle('dark-mode', isDark);
   if (themeToggle) themeToggle.checked = isDark;
@@ -44,31 +44,35 @@ const applyTheme = (isDark) => {
 themeToggle?.addEventListener('change', () => applyTheme(themeToggle.checked));
 applyTheme(localStorage.getItem('prefTheme') === 'dark');
 
-/* ---------- Navigation Logic ---------- */
-const toggleDrawer = (open) => {
-  drawer?.classList.toggle('open', open);
-  drawerOverlay?.classList.toggle('show', open);
-};
-
 function setActivePage(pageId) {
   Object.values(pages).forEach(p => { if(p) p.style.display = 'none'; });
   if (pages[pageId]) pages[pageId].style.display = 'block';
-  toggleDrawer(false);
+  
+  if (pageId === 'home') loadPublicFeed();
+  if (pageId === 'my') renderMyFormulas();
+  
+  drawer?.classList.remove('open');
+  drawerOverlay?.classList.remove('show');
 }
 
-menuBtn?.addEventListener('click', () => toggleDrawer(true));
-document.getElementById('drawer-close')?.addEventListener('click', () => toggleDrawer(false));
-drawerOverlay?.addEventListener('click', () => toggleDrawer(false));
+menuBtn?.addEventListener('click', () => {
+  drawer?.classList.add('open');
+  drawerOverlay?.classList.add('show');
+});
+
+document.getElementById('drawer-close')?.addEventListener('click', () => {
+  drawer?.classList.remove('open');
+  drawerOverlay?.classList.remove('show');
+});
 
 document.querySelectorAll('.drawer-item').forEach(item => {
   item.addEventListener('click', () => setActivePage(item.dataset.page));
 });
 
-/* ---------- Auth State ---------- */
+/* ---------- Authentication ---------- */
 let currentUser = null;
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
-  const authArea = document.getElementById('auth-area');
   const userInfo = document.getElementById('user-info');
   const signInBtn = document.getElementById('sign-in-btn');
 
@@ -81,80 +85,107 @@ onAuthStateChanged(auth, (user) => {
     if (signInBtn) signInBtn.style.display = 'block';
     if (userInfo) userInfo.style.display = 'none';
   }
-  loadPublicFeed();
+  loadPublicFeed(); // Always try to load feed regardless of auth
 });
 
 document.getElementById('sign-in-btn')?.addEventListener('click', () => signInWithPopup(auth, provider));
 document.getElementById('sign-out-btn')?.addEventListener('click', () => signOut(auth));
 
-/* ---------- THE SAVE FUNCTION (FORMULA CREATION) ---------- */
+/* ---------- Public Feed Logic ---------- */
+async function loadPublicFeed() {
+  const feedCards = document.getElementById('cards');
+  if (!feedCards) return;
+
+  feedCards.innerHTML = '<p class="muted">Scanning the fragrance library...</p>';
+
+  try {
+    const q = query(
+      collection(db, "formulas"),
+      where("public", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(25)
+    );
+
+    const snap = await getDocs(q);
+    feedCards.innerHTML = '';
+
+    if (snap.empty) {
+      feedCards.innerHTML = '<p class="muted">No public formulas yet. Create one to share!</p>';
+      return;
+    }
+
+    snap.forEach((doc) => {
+      const data = doc.data();
+      const cardHtml = `
+        <div class="card">
+          <div class="card-header">
+            <h3>${data.name}</h3>
+            <span class="badge">${data.concentration}</span>
+          </div>
+          <div class="card-content">
+            <p><strong>Top:</strong> ${data.top_notes?.join(', ') || 'N/A'}</p>
+            <p><strong>Heart:</strong> ${data.middle_notes?.join(', ') || 'N/A'}</p>
+            <p><strong>Base:</strong> ${data.base_notes?.join(', ') || 'N/A'}</p>
+          </div>
+          <div class="card-footer">
+            <small>By ${data.author}</small>
+            <small>${data.gender}</small>
+          </div>
+        </div>
+      `;
+      feedCards.insertAdjacentHTML('beforeend', cardHtml);
+    });
+  } catch (err) {
+    console.error("Feed Error:", err);
+    feedCards.innerHTML = '<p class="error">Unable to load formulas. Check your Firebase Rules or Browser Console.</p>';
+  }
+}
+
+/* ---------- Create Formula Logic ---------- */
 formulaForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (!currentUser) return alert("Sign in first!");
 
-  if (!currentUser) {
-    alert("Please sign in with Google to save your formula!");
-    return;
-  }
+  const cleanNotes = (id) => document.getElementById(id).value.split(',').map(n => n.trim()).filter(n => n !== "");
 
-  // 1. Gather values from the form
-  const name = document.getElementById('name')?.value.trim();
-  const concentration = document.getElementById('concentration')?.value;
-  const gender = document.getElementById('gender')?.value;
-  const topNotesRaw = document.getElementById('top_notes')?.value || "";
-  const midNotesRaw = document.getElementById('middle_notes')?.value || "";
-  const baseNotesRaw = document.getElementById('base_notes')?.value || "";
-  const isPublic = document.getElementById('public-checkbox')?.checked || false;
-
-  // 2. Validation
-  if (!name) {
-    alert("Please give your fragrance a name.");
-    return;
-  }
-
-  // 3. Clean up the comma-separated strings into Arrays
-  const cleanNotes = (str) => str.split(',').map(n => n.trim()).filter(n => n !== "");
-
-  // 4. Prepare the data package (Payload)
   const payload = {
-    name: name,
-    concentration: concentration,
-    gender: gender,
-    top_notes: cleanNotes(topNotesRaw),
-    middle_notes: cleanNotes(midNotesRaw),
-    base_notes: cleanNotes(baseNotesRaw),
+    name: document.getElementById('name').value.trim(),
+    concentration: document.getElementById('concentration').value,
+    gender: document.getElementById('gender').value,
+    top_notes: cleanNotes('top_notes'),
+    middle_notes: cleanNotes('middle_notes'),
+    base_notes: cleanNotes('base_notes'),
     uid: currentUser.uid,
-    author: currentUser.displayName || "Anonymous",
-    public: isPublic,
+    author: currentUser.displayName,
+    public: document.getElementById('public-checkbox').checked,
     createdAt: serverTimestamp()
   };
 
   try {
-    // 5. Send to Firebase
-    console.log("Saving formula...");
-    const docRef = await addDoc(collection(db, "formulas"), payload);
-    console.log("Saved with ID:", docRef.id);
-
-    // 6. Success! Reset and Redirect
-    alert("Formula saved successfully!");
+    await addDoc(collection(db, "formulas"), payload);
     formulaForm.reset();
-    setActivePage('home'); // Go to home to see the feed
-  } catch (error) {
-    console.error("Error saving to Firebase:", error);
-    alert("Failed to save: " + error.message);
+    alert("Formula Shared!");
+    setActivePage('home');
+  } catch (err) {
+    alert("Save Error: " + err.message);
   }
 });
 
-/* ---------- Data Loading (Placeholders) ---------- */
-async function loadPublicFeed() {
-  const feedCards = document.getElementById('cards');
-  if (!feedCards) return;
-  feedCards.innerHTML = '<p class="muted">Loading formulas...</p>';
-  // Feed logic would go here
-}
-
+/* ---------- My Formulas Logic ---------- */
 async function renderMyFormulas() {
-  // My Formulas logic would go here
+  const myCards = document.getElementById('my-cards');
+  if (!myCards || !currentUser) return;
+  myCards.innerHTML = '<p class="muted">Fetching your lab notebook...</p>';
+
+  const q = query(collection(db, "formulas"), where("uid", "==", currentUser.uid), orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  myCards.innerHTML = '';
+  
+  snap.forEach(doc => {
+    const data = doc.data();
+    myCards.insertAdjacentHTML('beforeend', `<div class="card"><h3>${data.name}</h3><p>${data.public ? '🌍 Public' : '🔒 Private'}</p></div>`);
+  });
 }
 
-// Startup
+// Start on Home
 setActivePage('home');
