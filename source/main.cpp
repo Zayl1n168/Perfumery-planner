@@ -1,37 +1,60 @@
 #include <3ds.h>
 #include <stdio.h>
-#include <string.h>
+#include <vector>
+#include <string>
+
+// Simple structure to hold your perfume ingredients
+struct Ingredient {
+    std::string name;
+    int drops;
+};
 
 int main(int argc, char* argv[])
 {
-    // 1. Initialize the 3DS graphics and console
     gfxInitDefault();
-    consoleInit(GFX_TOP, NULL); // Use the TOP screen for text instructions
+    consoleInit(GFX_TOP, NULL); // Top screen for info
+    PrintConsole bottomScreen;
+    consoleInit(GFX_BOTTOM, &bottomScreen); // Bottom screen for "buttons"
 
-    // 2. Setup colors and UI text
-    printf("\x1b[1;1HFragrance Maker 3DS v1.0");
-    printf("\x1b[3;1H--------------------------");
-    printf("\x1b[5;1HPress [A] to launch the app");
-    printf("\x1b[6;1H(Opens in 3DS Browser)");
-    printf("\x1b[10;1HPress START to exit to Homebrew");
+    std::vector<Ingredient> recipe = {
+        {"Bergamot", 5},
+        {"Cedarwood", 3},
+        {"Vanilla", 2}
+    };
 
-    // 3. Your specific Firebase URL
-    const char* url = "https://perfumery-planner.web.app";
+    int selection = 0;
 
     while (aptMainLoop())
     {
         hidScanInput();
         u32 kDown = hidKeysDown();
 
-        if (kDown & KEY_START) break; 
+        if (kDown & KEY_START) break;
 
-        if (kDown & KEY_A) {
-            printf("\x1b[12;1HLaunching...");
-            
-            // Corrected function name for modern libctru
-            // Parameters: Applet ID, Pointer to data (URL), Size of data, Browser type
-            aptLaunchLibraryApplet(APPID_WEB, (void*)url, strlen(url) + 1, 0);
+        // Navigation logic
+        if (kDown & KEY_DOWN) selection++;
+        if (kDown & KEY_UP) selection--;
+        if (selection < 0) selection = recipe.size() - 1;
+        if (selection >= (int)recipe.size()) selection = 0;
+
+        // Render Top Screen
+        consoleSelect(gfxGetConsole(GFX_TOP));
+        printf("\x1b[1;1H--- Perfumery Planner 3DS ---");
+        printf("\x1b[3;1HCurrent Recipe Layout:");
+        
+        for(int i=0; i < (int)recipe.size(); i++) {
+            if(i == selection) printf("\x1b[%d;1H > %s: %d drops ", i+5, recipe[i].name.c_str(), recipe[i].drops);
+            else printf("\x1b[%d;1H   %s: %d drops ", i+5, recipe[i].name.c_str(), recipe[i].drops);
         }
+
+        // Render Bottom Screen (The "Touch" Area)
+        consoleSelect(&bottomScreen);
+        printf("\x1b[1;1H[ Controls ]");
+        printf("\x1b[3;1HUP/DOWN: Select Ingredient");
+        printf("\x1b[4;1HA: Increase Drops | B: Decrease");
+        
+        if (kDown & KEY_A) recipe[selection].drops++;
+        if (kDown & KEY_B && recipe[selection].drops > 0) recipe[selection].drops--;
 
         gfxFlushBuffers();
         gfxSwapBuffers();
