@@ -3,7 +3,6 @@
 #include <vector>
 #include <string>
 
-// Simple structure to hold your perfume ingredients
 struct Ingredient {
     std::string name;
     int drops;
@@ -12,9 +11,11 @@ struct Ingredient {
 int main(int argc, char* argv[])
 {
     gfxInitDefault();
-    consoleInit(GFX_TOP, NULL); // Top screen for info
-    PrintConsole bottomScreen;
-    consoleInit(GFX_BOTTOM, &bottomScreen); // Bottom screen for "buttons"
+
+    // 1. Initialize two consoles: one for Top, one for Bottom
+    PrintConsole topConsole, bottomConsole;
+    consoleInit(GFX_TOP, &topConsole);
+    consoleInit(GFX_BOTTOM, &bottomConsole);
 
     std::vector<Ingredient> recipe = {
         {"Bergamot", 5},
@@ -31,30 +32,35 @@ int main(int argc, char* argv[])
 
         if (kDown & KEY_START) break;
 
-        // Navigation logic
+        // Selection Logic
         if (kDown & KEY_DOWN) selection++;
         if (kDown & KEY_UP) selection--;
         if (selection < 0) selection = recipe.size() - 1;
         if (selection >= (int)recipe.size()) selection = 0;
 
-        // Render Top Screen
-        consoleSelect(gfxGetConsole(GFX_TOP));
+        // Increase/Decrease Drops
+        if (kDown & KEY_A) recipe[selection].drops++;
+        if (kDown & KEY_B && recipe[selection].drops > 0) recipe[selection].drops--;
+
+        // --- Render Top Screen ---
+        consoleSelect(&topConsole);
         printf("\x1b[1;1H--- Perfumery Planner 3DS ---");
         printf("\x1b[3;1HCurrent Recipe Layout:");
         
         for(int i=0; i < (int)recipe.size(); i++) {
-            if(i == selection) printf("\x1b[%d;1H > %s: %d drops ", i+5, recipe[i].name.c_str(), recipe[i].drops);
-            else printf("\x1b[%d;1H   %s: %d drops ", i+5, recipe[i].name.c_str(), recipe[i].drops);
+            // \x1b[line;columnH is used to position the text
+            if(i == selection) 
+                printf("\x1b[%d;1H > %-15s: %2d drops ", i+5, recipe[i].name.c_str(), recipe[i].drops);
+            else 
+                printf("\x1b[%d;1H   %-15s: %2d drops ", i+5, recipe[i].name.c_str(), recipe[i].drops);
         }
 
-        // Render Bottom Screen (The "Touch" Area)
-        consoleSelect(&bottomScreen);
+        // --- Render Bottom Screen ---
+        consoleSelect(&bottomConsole);
         printf("\x1b[1;1H[ Controls ]");
         printf("\x1b[3;1HUP/DOWN: Select Ingredient");
-        printf("\x1b[4;1HA: Increase Drops | B: Decrease");
-        
-        if (kDown & KEY_A) recipe[selection].drops++;
-        if (kDown & KEY_B && recipe[selection].drops > 0) recipe[selection].drops--;
+        printf("\x1b[4;1HA: Increase | B: Decrease");
+        printf("\x1b[10;1HPress START to exit");
 
         gfxFlushBuffers();
         gfxSwapBuffers();
