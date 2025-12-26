@@ -10,18 +10,20 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build the 3DSX
         run: |
-          arm-none-eabi-g++ -O2 -mword-relocations -fomit-frame-pointer -ffunction-sections \
+          # Use the absolute path to the compiler using the DEVKITARM variable
+          $DEVKITARM/bin/arm-none-eabi-g++ -O2 -mword-relocations -fomit-frame-pointer -ffunction-sections \
           -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft \
           -I$DEVKITPRO/libctru/include \
           source/main.cpp \
           -L$DEVKITPRO/libctru/lib -lctru -lm \
           -o FragranceMaker.elf
 
-          3dsxtool FragranceMaker.elf FragranceMaker.3dsx --romfs=romfs
+          # Use the absolute path to the 3DSX tool
+          $DEVKITARM/bin/3dsxtool FragranceMaker.elf FragranceMaker.3dsx --romfs=romfs
 
       - name: Upload Finished App
         uses: actions/upload-artifact@v4
