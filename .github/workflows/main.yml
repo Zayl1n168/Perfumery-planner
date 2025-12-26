@@ -1,0 +1,34 @@
+name: Build 3DS Manual
+
+on:
+  workflow_dispatch: # Allows you to click the button to start
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # This container has all the 3DS compilers ready to go
+    container: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Build the 3DSX
+        run: |
+          # 1. Compile the C++ code into an ELF file
+          arm-none-eabi-g++ -O2 -mword-relocations -fomit-frame-pointer -ffunction-sections \
+          -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft \
+          -I$DEVKITPRO/libctru/include \
+          source/main.cpp \
+          -L$DEVKITPRO/libctru/lib -lctru -lm \
+          -o FragranceMaker.elf
+
+          # 2. Turn the ELF into a 3DSX (Homebrew format)
+          # Even if romfs is empty, we point to it to avoid errors
+          3dsxtool FragranceMaker.elf FragranceMaker.3dsx --romfs=romfs
+
+      - name: Upload Finished App
+        uses: actions/upload-artifact@v3
+        with:
+          name: 3DS-Homebrew-Build
+          path: FragranceMaker.3dsx
