@@ -16,37 +16,28 @@ int main(int argc, char* argv[])
     printf("\x1b[10;1HPress START to exit to Homebrew");
 
     // 3. Your specific Firebase URL
-    // We use the hosted URL because the 3DS browser handles 
-    // web security better than a custom local webview.
     const char* url = "https://perfumery-planner.web.app";
 
     while (aptMainLoop())
     {
-        // Scan all the inputs
         hidScanInput();
-
-        // hidKeysDown returns information about which buttons have just been pressed
         u32 kDown = hidKeysDown();
 
-        if (kDown & KEY_START) break; // Exit loop and close app
+        if (kDown & KEY_START) break; 
 
         if (kDown & KEY_A) {
             printf("\x1b[12;1HLaunching...");
             
-            // This is the magic command that opens the browser
-            // Parameters: URL, Browser Profile, Initial Zoom, Browser ID
-            aptOpenLibraryApplet(APPID_WEB, url, 0, 0);
+            // Corrected function name for modern libctru
+            // Parameters: Applet ID, Pointer to data (URL), Size of data, Browser type
+            aptLaunchLibraryApplet(APPID_WEB, (void*)url, strlen(url) + 1, 0);
         }
 
-        // Flush and swap framebuffers
         gfxFlushBuffers();
         gfxSwapBuffers();
-
-        // Wait for VBlank (syncs the frame rate to 60fps)
         gspWaitForVBlank();
     }
 
-    // 4. Cleanup and exit back to the Homebrew Menu
     gfxExit();
     return 0;
 }
