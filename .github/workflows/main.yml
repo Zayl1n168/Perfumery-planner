@@ -14,15 +14,17 @@ jobs:
 
       - name: Build the 3DSX
         run: |
-          # Use the absolute path to the compiler using the DEVKITARM variable
-          $DEVKITARM/bin/arm-none-eabi-g++ -O2 -mword-relocations -fomit-frame-pointer -ffunction-sections \
+          # 1. Compile and Link with 3DS specific flags (-specs=3dsx.specs)
+          $DEVKITARM/bin/arm-none-eabi-g++ -O2 -mword-relocations \
+          -fomit-frame-pointer -ffunction-sections \
           -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft \
+          -specs=3dsx.specs \
           -I$DEVKITPRO/libctru/include \
           source/main.cpp \
           -L$DEVKITPRO/libctru/lib -lctru -lm \
           -o FragranceMaker.elf
 
-          # Use the absolute path to the 3DSX tool
+          # 2. Convert to 3DSX
           $DEVKITARM/bin/3dsxtool FragranceMaker.elf FragranceMaker.3dsx --romfs=romfs
 
       - name: Upload Finished App
