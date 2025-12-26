@@ -14,7 +14,10 @@ jobs:
 
       - name: Build the 3DSX
         run: |
-          # 1. Compile and Link with 3DS specific flags (-specs=3dsx.specs)
+          # 1. Load the devkitPro environment variables
+          source /opt/devkitpro/3dsvars.sh
+
+          # 2. Compile and Link using full tool paths
           $DEVKITARM/bin/arm-none-eabi-g++ -O2 -mword-relocations \
           -fomit-frame-pointer -ffunction-sections \
           -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft \
@@ -24,8 +27,8 @@ jobs:
           -L$DEVKITPRO/libctru/lib -lctru -lm \
           -o FragranceMaker.elf
 
-          # 2. Convert to 3DSX
-          $DEVKITARM/bin/3dsxtool FragranceMaker.elf FragranceMaker.3dsx --romfs=romfs
+          # 3. Convert to 3DSX (Note the change to tools/bin)
+          $DEVKITPRO/tools/bin/3dsxtool FragranceMaker.elf FragranceMaker.3dsx --romfs=romfs
 
       - name: Upload Finished App
         uses: actions/upload-artifact@v4
