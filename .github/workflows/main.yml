@@ -1,0 +1,30 @@
+name: Build 3DS Manual
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: devkitpro/devkitarm:latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Build the 3DSX
+        run: |
+          arm-none-eabi-g++ -O2 -mword-relocations -fomit-frame-pointer -ffunction-sections \
+          -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft \
+          -I$DEVKITPRO/libctru/include \
+          source/main.cpp \
+          -L$DEVKITPRO/libctru/lib -lctru -lm \
+          -o FragranceMaker.elf
+
+          3dsxtool FragranceMaker.elf FragranceMaker.3dsx --romfs=romfs
+
+      - name: Upload Finished App
+        uses: actions/upload-artifact@v3
+        with:
+          name: 3DS-Homebrew-Build
+          path: FragranceMaker.3dsx
