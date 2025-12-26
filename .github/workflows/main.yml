@@ -14,12 +14,10 @@ jobs:
 
       - name: Build the 3DSX
         run: |
-          # 1. Load environment variables using '.' (compatible with all shells)
-          # We use the absolute path provided by devkitPro containers
+          # 1. Load environment variables
           . /opt/devkitpro/3dsvars.sh
 
           # 2. Compile and Link
-          # $DEVKITARM is now set correctly by the script above
           $DEVKITARM/bin/arm-none-eabi-g++ -O2 -mword-relocations \
           -fomit-frame-pointer -ffunction-sections \
           -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft \
@@ -29,9 +27,11 @@ jobs:
           -L$DEVKITPRO/libctru/lib -lctru -lm \
           -o FragranceMaker.elf
 
-          # 3. Convert to 3DSX
-          # Tools are located in the tools/bin directory
-          $DEVKITPRO/tools/bin/3dsxtool FragranceMaker.elf FragranceMaker.3dsx --romfs=romfs
+          # 3. Convert to 3DSX with automatic metadata generation
+          # We add the --smdh flag to create a basic icon/title automatically
+          $DEVKITPRO/tools/bin/3dsxtool FragranceMaker.elf FragranceMaker.3dsx \
+          --romfs=romfs \
+          --smdh=FragranceMaker.smdh:"Fragrance Maker":"The Fragrance Planner":"Homebrew"
 
       - name: Upload Finished App
         uses: actions/upload-artifact@v4
