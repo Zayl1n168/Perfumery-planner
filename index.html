@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Fragrance Maker</title>
   <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="app" class="app">
     <header class="app-header">
-      <button id="menu-btn" class="menu-btn" aria-label="Menu">☰</button>
+      <button id="menu-btn" class="menu-btn">☰</button>
       <div class="brand">
         <div class="logo-dot"></div>
         <div>
@@ -19,10 +19,10 @@
         </div>
       </div>
       <div class="header-right">
-        <div id="auth-area" class="auth-area">
+        <div id="auth-area">
           <button id="sign-in-btn" class="btn small">Sign in</button>
-          <div id="user-info" class="user-info" style="display:none">
-            <img id="user-avatar" class="avatar" alt="User profile">
+          <div id="user-info" style="display:none">
+            <img id="user-avatar" class="avatar">
             <button id="sign-out-btn" class="btn small">Sign out</button>
           </div>
         </div>
@@ -40,14 +40,14 @@
       </div>
       <ul class="drawer-list">
         <li class="drawer-item" data-page="home">🏠 Home</li>
-        <li class="drawer-item" data-page="my">🧴 My Formulas</li>
+        <li class="drawer-item" data-page="my">🧴 My Lab</li>
         <li class="drawer-item" data-page="create">✏️ Create</li>
         <li class="drawer-item" data-page="settings">⚙️ Settings</li>
       </ul>
     </nav>
     <div id="drawer-overlay" class="drawer-overlay"></div>
 
-    <main class="main">
+    <main>
       <section id="page-home" class="page">
         <div id="cards" class="card-grid"></div>
       </section>
@@ -61,9 +61,9 @@
 
       <section id="page-create" class="page" style="display:none">
         <div class="panel">
-          <h2>New Formula</h2>
+          <h2>Create New Formula</h2>
           <form id="formula-form">
-            <label>Name <input type="text" id="name" required></label>
+            <label>Formula Name <input type="text" id="name" required></label>
             <div class="form-row">
               <label>Concentration 
                 <select id="concentration"><option>EDP</option><option>EDT</option><option>EDC</option><option>Extrait</option></select>
@@ -72,9 +72,9 @@
                 <select id="gender"><option>Unisex</option><option>Male</option><option>Female</option></select>
               </label>
             </div>
-            <label>Top Notes <textarea id="top_notes" placeholder="Lemon, Bergamot..."></textarea></label>
-            <label>Middle Notes <textarea id="middle_notes" placeholder="Rose, Jasmine..."></textarea></label>
-            <label>Base Notes <textarea id="base_notes" placeholder="Vanilla, Musk..."></textarea></label>
+            <label>Top Notes <textarea id="top_notes"></textarea></label>
+            <label>Heart Notes <textarea id="middle_notes"></textarea></label>
+            <label>Base Notes <textarea id="base_notes"></textarea></label>
             <label><input type="checkbox" id="public-checkbox" checked> Public</label>
             <button type="submit" class="btn primary">Save Formula</button>
           </form>
@@ -84,8 +84,8 @@
       <section id="page-settings" class="page" style="display:none">
         <div class="panel">
           <h2>Settings</h2>
-          <button id="export-btn" class="btn small">Export JSON</button>
-          <button id="delete-all-btn" class="btn danger small">Wipe All Data</button>
+          <button id="export-btn" class="btn small">Export Data</button>
+          <button id="delete-all-btn" class="btn danger small">Wipe All Records</button>
         </div>
       </section>
     </main>
@@ -97,7 +97,7 @@
           <input type="hidden" id="edit-id">
           <label>Name <input type="text" id="edit-name" required></label>
           <label>Top <textarea id="edit-top"></textarea></label>
-          <label>Middle <textarea id="edit-middle"></textarea></label>
+          <label>Heart <textarea id="edit-middle"></textarea></label>
           <label>Base <textarea id="edit-base"></textarea></label>
           <div class="modal-btns">
             <button type="submit" class="btn primary">Update</button>
