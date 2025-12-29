@@ -27,10 +27,10 @@
         <button id="drawer-close" class="btn small">✕ CLOSE</button>
       </div>
       <ul style="list-style:none; margin-top:25px;">
-        <li class="drawer-item" data-page="home" style="padding:15px 0; border-bottom:1px solid rgba(255,255,255,0.2); cursor:pointer;">🏠 PUBLIC FEED</li>
-        <li class="drawer-item" data-page="my" style="padding:15px 0; border-bottom:1px solid rgba(255,255,255,0.2); cursor:pointer;">🧴 MY NOTEBOOK</li>
-        <li class="drawer-item" data-page="create" style="padding:15px 0; border-bottom:1px solid rgba(255,255,255,0.2); cursor:pointer;">✏️ NEW FORMULA</li>
-        <li class="drawer-item" data-page="settings" style="padding:15px 0; cursor:pointer;">⚙️ SETTINGS</li>
+        <li class="drawer-item" data-page="home">🏠 PUBLIC FEED</li>
+        <li class="drawer-item" data-page="my">🧴 MY NOTEBOOK</li>
+        <li class="drawer-item" data-page="create">✏️ NEW FORMULA</li>
+        <li class="drawer-item" data-page="settings">⚙️ SETTINGS</li>
       </ul>
     </nav>
 
@@ -45,12 +45,25 @@
         <div class="panel">
           <h2>CREATE FORMULA</h2>
           <form id="formula-form">
-            <label>FORMULA NAME <input type="text" id="name" required style="width:100%; margin:8px 0; padding:10px; border:2px solid black;"></label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <label>NAME <input type="text" id="name" required style="width:100%; margin:5px 0; padding:10px; border:2px solid black;"></label>
+              <label>TYPE
+                <select id="concentration-input" style="width:100%; margin:5px 0; padding:10px; border:2px solid black;">
+                  <option value="EDP">Eau de Parfum</option>
+                  <option value="EDT">Eau de Toilette</option>
+                  <option value="Extrait">Extrait</option>
+                  <option value="Cologne">Cologne</option>
+                </select>
+              </label>
+            </div>
+
             <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
               <h3>COMPOSITION (mL)</h3>
               <button type="button" id="add-row-btn" class="btn small">+ ADD MATERIAL</button>
             </div>
+            
             <div id="ingredient-rows-container" style="margin-top:10px;"></div>
+            
             <label style="margin-top:20px; display:block;"><input type="checkbox" id="public-checkbox" checked> SHARE IN PUBLIC FEED</label>
             <button type="submit" class="btn" style="width:100%; margin-top:20px;">SAVE TO LABORATORY</button>
           </form>
