@@ -22,11 +22,11 @@
         <div id="auth-area">
           <button id="sign-in-btn" class="btn small">Sign in</button>
           <div id="user-info" style="display:none">
-            <img id="user-avatar" class="avatar">
+            <img id="user-avatar" class="avatar" style="width:30px; border-radius:50%;">
             <button id="sign-out-btn" class="btn small">Sign out</button>
           </div>
         </div>
-        <label class="theme-switch">
+        <label class="theme-switch" style="cursor:pointer; margin-left:10px;">
           <input id="theme-toggle" type="checkbox">
           <span>Dark</span>
         </label>
@@ -34,10 +34,7 @@
     </header>
 
     <nav id="drawer" class="drawer">
-      <div class="drawer-header">
-        <h3>Menu</h3>
-        <button id="drawer-close">✕</button>
-      </div>
+      <div class="drawer-header"><h3>Menu</h3><button id="drawer-close">✕</button></div>
       <ul class="drawer-list">
         <li class="drawer-item" data-page="home">🏠 Home</li>
         <li class="drawer-item" data-page="my">🧴 My Lab</li>
@@ -48,29 +45,18 @@
     <div id="drawer-overlay" class="drawer-overlay"></div>
 
     <main>
-      <section id="page-home" class="page">
-        <div id="cards" class="card-grid"></div>
-      </section>
-
+      <section id="page-home" class="page"><div id="cards" class="card-grid"></div></section>
       <section id="page-my" class="page" style="display:none">
-        <div class="panel">
-          <h2>My Lab Notebook</h2>
-          <div id="my-cards" class="card-grid"></div>
-        </div>
+        <div class="panel"><h2>My Lab Notebook</h2><div id="my-cards" class="card-grid"></div></div>
       </section>
-
       <section id="page-create" class="page" style="display:none">
         <div class="panel">
           <h2>Create New Formula</h2>
           <form id="formula-form">
             <label>Formula Name <input type="text" id="name" required></label>
-            <div class="form-row">
-              <label>Concentration 
-                <select id="concentration"><option>EDP</option><option>EDT</option><option>EDC</option><option>Extrait</option></select>
-              </label>
-              <label>Gender 
-                <select id="gender"><option>Unisex</option><option>Male</option><option>Female</option></select>
-              </label>
+            <div style="display:flex; gap:10px;">
+              <label style="flex:1;">Concentration <select id="concentration"><option>EDP</option><option>EDT</option></select></label>
+              <label style="flex:1;">Gender <select id="gender"><option>Unisex</option><option>Male</option><option>Female</option></select></label>
             </div>
             <label>Top Notes <textarea id="top_notes"></textarea></label>
             <label>Heart Notes <textarea id="middle_notes"></textarea></label>
@@ -80,13 +66,8 @@
           </form>
         </div>
       </section>
-
       <section id="page-settings" class="page" style="display:none">
-        <div class="panel">
-          <h2>Settings</h2>
-          <button id="export-btn" class="btn small">Export Data</button>
-          <button id="delete-all-btn" class="btn danger small">Wipe All Records</button>
-        </div>
+        <div class="panel"><h2>Settings</h2><button id="export-btn" class="btn small">Export Data</button></div>
       </section>
     </main>
 
@@ -99,7 +80,7 @@
           <label>Top <textarea id="edit-top"></textarea></label>
           <label>Heart <textarea id="edit-middle"></textarea></label>
           <label>Base <textarea id="edit-base"></textarea></label>
-          <div class="modal-btns">
+          <div style="margin-top:15px; display:flex; gap:10px;">
             <button type="submit" class="btn primary">Update</button>
             <button type="button" id="edit-cancel" class="btn">Cancel</button>
           </div>
