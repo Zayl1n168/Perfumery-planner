@@ -5,32 +5,30 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Fragrance Maker</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="app" class="app">
     <header class="app-header">
       <button id="menu-btn" class="menu-btn" aria-label="Menu">☰</button>
-      <div class="brand" id="brand">
-        <div class="logo-dot" aria-hidden="true"></div>
+      <div class="brand">
+        <div class="logo-dot"></div>
         <div>
           <a id="nav-home" class="logo-link">Fragrance Maker</a>
           <div class="byline">DIY perfumery • public formulas</div>
         </div>
       </div>
-
       <div class="header-right">
         <div id="auth-area" class="auth-area">
-          <button id="sign-in-btn" class="btn small">Sign in with Google</button>
+          <button id="sign-in-btn" class="btn small">Sign in</button>
           <div id="user-info" class="user-info" style="display:none">
             <img id="user-avatar" class="avatar" alt="User profile">
-            <span id="user-name" class="user-name"></span>
             <button id="sign-out-btn" class="btn small">Sign out</button>
           </div>
         </div>
-
-        <label class="theme-switch" title="Toggle dark mode">
+        <label class="theme-switch">
           <input id="theme-toggle" type="checkbox">
-          <span class="switch-label">Dark</span>
+          <span>Dark</span>
         </label>
       </div>
     </header>
@@ -38,7 +36,7 @@
     <nav id="drawer" class="drawer">
       <div class="drawer-header">
         <h3>Menu</h3>
-        <button id="drawer-close" class="drawer-close">✕</button>
+        <button id="drawer-close">✕</button>
       </div>
       <ul class="drawer-list">
         <li class="drawer-item" data-page="home">🏠 Home</li>
@@ -47,14 +45,11 @@
         <li class="drawer-item" data-page="settings">⚙️ Settings</li>
       </ul>
     </nav>
-
     <div id="drawer-overlay" class="drawer-overlay"></div>
 
     <main class="main">
       <section id="page-home" class="page">
-        <div id="feed" class="feed">
-          <div id="cards" class="card-grid"></div>
-        </div>
+        <div id="cards" class="card-grid"></div>
       </section>
 
       <section id="page-my" class="page" style="display:none">
@@ -66,17 +61,21 @@
 
       <section id="page-create" class="page" style="display:none">
         <div class="panel">
-          <h2>Create New Formula</h2>
+          <h2>New Formula</h2>
           <form id="formula-form">
-            <div class="form-group"><label>Name</label><input type="text" id="name" required></div>
+            <label>Name <input type="text" id="name" required></label>
             <div class="form-row">
-              <div class="form-group"><label>Concentration</label><select id="concentration"><option>EDP</option><option>EDT</option><option>EDC</option><option>Extrait</option></select></div>
-              <div class="form-group"><label>Gender</label><select id="gender"><option>Unisex</option><option>Male</option><option>Female</option></select></div>
+              <label>Concentration 
+                <select id="concentration"><option>EDP</option><option>EDT</option><option>EDC</option><option>Extrait</option></select>
+              </label>
+              <label>Gender 
+                <select id="gender"><option>Unisex</option><option>Male</option><option>Female</option></select>
+              </label>
             </div>
-            <div class="form-group"><label>Top Notes (comma separated)</label><textarea id="top_notes"></textarea></div>
-            <div class="form-group"><label>Middle Notes</label><textarea id="middle_notes"></textarea></div>
-            <div class="form-group"><label>Base Notes</label><textarea id="base_notes"></textarea></div>
-            <div class="form-group"><label><input type="checkbox" id="public-checkbox" checked> Public</label></div>
+            <label>Top Notes <textarea id="top_notes" placeholder="Lemon, Bergamot..."></textarea></label>
+            <label>Middle Notes <textarea id="middle_notes" placeholder="Rose, Jasmine..."></textarea></label>
+            <label>Base Notes <textarea id="base_notes" placeholder="Vanilla, Musk..."></textarea></label>
+            <label><input type="checkbox" id="public-checkbox" checked> Public</label>
             <button type="submit" class="btn primary">Save Formula</button>
           </form>
         </div>
@@ -85,32 +84,28 @@
       <section id="page-settings" class="page" style="display:none">
         <div class="panel">
           <h2>Settings</h2>
-          <button id="export-btn" class="btn small">Export formulas (.txt)</button>
-          <button id="delete-all-btn" class="btn danger small">Clear Data</button>
+          <button id="export-btn" class="btn small">Export JSON</button>
+          <button id="delete-all-btn" class="btn danger small">Wipe All Data</button>
         </div>
       </section>
     </main>
 
-    <div id="edit-modal" class="drawer-overlay" style="display:none; z-index: 2000; opacity: 1; visibility: visible; justify-content: center; align-items: center;">
-      <div class="panel" style="max-width: 500px; width: 90%; margin: auto; position: relative;">
+    <div id="edit-modal" class="modal-overlay" style="display:none;">
+      <div class="modal-content">
         <h3>Edit Formula</h3>
         <form id="edit-form">
           <input type="hidden" id="edit-id">
-          <label>Name</label><input type="text" id="edit-name" required>
-          <label>Top Notes</label><textarea id="edit-top"></textarea>
-          <label>Middle Notes</label><textarea id="edit-middle"></textarea>
-          <label>Base Notes</label><textarea id="edit-base"></textarea>
-          <div style="display:flex; gap:10px; margin-top:15px;">
+          <label>Name <input type="text" id="edit-name" required></label>
+          <label>Top <textarea id="edit-top"></textarea></label>
+          <label>Middle <textarea id="edit-middle"></textarea></label>
+          <label>Base <textarea id="edit-base"></textarea></label>
+          <div class="modal-btns">
             <button type="submit" class="btn primary">Update</button>
             <button type="button" id="edit-cancel" class="btn">Cancel</button>
           </div>
         </form>
       </div>
     </div>
-
-    <footer class="app-footer">
-      <small>Made by Zayl1n168 • NOT IFRA TESTED!!</small>
-    </footer>
   </div>
   <script type="module" src="script.js"></script>
 </body>
