@@ -18,7 +18,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-/* --- Composition Form Logic --- */
+/* --- Dynamic Entry --- */
 const rowsContainer = document.getElementById('ingredient-rows-container');
 const addRowBtn = document.getElementById('add-row-btn');
 
@@ -42,21 +42,18 @@ function createRow(container) {
 }
 if(addRowBtn) addRowBtn.onclick = () => createRow(rowsContainer);
 
-/* --- Scent Map Logic --- */
+/* --- Scent Profile Visualizer --- */
 function getVisualizerHtml(comp) {
   if (!Array.isArray(comp) || comp.length === 0) return '<div class="scent-profile-bar"></div>';
   const colors = { Citrus: '#FFD700', Floral: '#FF69B4', Woody: '#8B4513', Fresh: '#00FFFF', Sweet: '#FFA500', Spicy: '#FF4500' };
   const totals = {};
   let totalMl = 0;
-  
   comp.forEach(c => { 
     const val = parseFloat(c.ml) || 0;
     totals[c.category] = (totals[c.category] || 0) + val; 
     totalMl += val; 
   });
-
   if (totalMl === 0) return '<div class="scent-profile-bar"></div>';
-  
   let html = '<div class="scent-profile-bar">';
   for (const cat in totals) {
     const width = (totals[cat] / totalMl) * 100;
@@ -65,7 +62,7 @@ function getVisualizerHtml(comp) {
   return html + '</div>';
 }
 
-/* --- Scaling Function --- */
+/* --- Scaling Logic --- */
 window.updateScale = (id, baseJson) => {
   const multiplier = document.getElementById(`scale-${id}`).value;
   const base = JSON.parse(decodeURIComponent(baseJson));
@@ -76,7 +73,7 @@ window.updateScale = (id, baseJson) => {
   document.getElementById(`val-${id}`).innerText = multiplier + 'x Batch';
 };
 
-/* --- Card Rendering --- */
+/* --- Card Template --- */
 function createCard(d, isOwner) {
   const data = d.data();
   const comp = Array.isArray(data.composition) ? data.composition : [];
@@ -92,7 +89,7 @@ function createCard(d, isOwner) {
             <div class="ing-item">
               <span>${c.name}</span>
               <b id="ml-${d.id}-${i}">${c.ml}mL</b>
-            </div>`).join('') : '<p style="font-size:0.7rem; color:var(--muted)">Legacy formula: Edit to add mL data.</p>'}
+            </div>`).join('') : '<p style="font-size:0.75rem; color:var(--muted)">Legacy formula: Edit to add mL data.</p>'}
         </div>
         ${comp.length > 0 ? `
           <div class="scaler-ui">
@@ -100,11 +97,36 @@ function createCard(d, isOwner) {
             <input type="range" id="scale-${d.id}" min="1" max="50" value="1" oninput="updateScale('${d.id}', '${compJson}')">
           </div>` : ''}
       </div>
-      ${isOwner ? `<div class="card-actions"><button class="btn danger small" onclick="deleteFormula('${d.id}')">Delete</button></div>` : ''}
+      ${isOwner ? `<div class="card-actions" style="padding:10px; border-top:1px solid var(--border)"><button class="btn danger small" onclick="deleteFormula('${d.id}')">Delete</button></div>` : ''}
     </div>`;
 }
 
-/* --- Navigation & Theme --- */
+/* --- Navigation & Menu --- */
+function setActivePage(pageId) {
+  const pages = { home: 'page-home', my: 'page-my', create: 'page-create', settings: 'page-settings' };
+  Object.values(pages).forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+  const activePage = document.getElementById(pages[pageId]);
+  if(activePage) activePage.style.display = 'block';
+  
+  closeMenu();
+  if (pageId === 'home') loadFeed('home');
+  if (pageId === 'my') loadFeed('my');
+}
+
+function openMenu() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('show');
+}
+
+function closeMenu() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('show');
+}
+
+/* --- Theme --- */
 const themeToggle = document.getElementById('theme-toggle');
 const applyTheme = (isDark) => {
   document.body.classList.toggle('dark', isDark);
@@ -114,23 +136,13 @@ const applyTheme = (isDark) => {
 themeToggle?.addEventListener('change', () => applyTheme(themeToggle.checked));
 applyTheme(localStorage.getItem('prefTheme') === 'dark');
 
-function setActivePage(pageId) {
-  const pages = { home: 'page-home', my: 'page-my', create: 'page-create', settings: 'page-settings' };
-  Object.values(pages).forEach(id => document.getElementById(id).style.display = 'none');
-  document.getElementById(pages[pageId]).style.display = 'block';
-  if (pageId === 'home') loadFeed('home');
-  if (pageId === 'my') loadFeed('my');
-  document.getElementById('drawer').classList.remove('open');
-  document.getElementById('drawer-overlay').classList.remove('show');
-}
-
-/* --- Firebase Core --- */
+/* --- Firebase Logic --- */
 let currentUser = null;
 onAuthStateChanged(auth, user => {
   currentUser = user;
   document.getElementById('user-info').style.display = user ? 'flex' : 'none';
   document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
-  if (user) document.getElementById('user-avatar').src = user.photoURL;
+  if (user && document.getElementById('user-avatar')) document.getElementById('user-avatar').src = user.photoURL;
   setActivePage('home');
 });
 
@@ -155,7 +167,8 @@ document.getElementById('formula-form').onsubmit = async (e) => {
 
 async function loadFeed(type) {
   const container = type === 'home' ? document.getElementById('cards') : document.getElementById('my-cards');
-  container.innerHTML = '<p style="padding:20px">Synchronizing Lab Data...</p>';
+  if(!container) return;
+  container.innerHTML = '<p style="padding:20px">Loading Lab...</p>';
   const q = type === 'home' ? query(collection(db, "formulas"), where("public", "==", true), limit(25)) : query(collection(db, "formulas"), where("uid", "==", currentUser?.uid));
   const snap = await getDocs(q);
   container.innerHTML = '';
@@ -170,9 +183,13 @@ window.deleteFormula = async (id) => {
 };
 
 /* --- Global Listeners --- */
-document.querySelectorAll('.drawer-item').forEach(item => item.onclick = () => setActivePage(item.dataset.page));
-document.getElementById('menu-btn').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('show'); };
-document.getElementById('drawer-close').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('show'); };
+document.getElementById('menu-btn').onclick = openMenu;
+document.getElementById('drawer-close').onclick = closeMenu;
+document.getElementById('drawer-overlay').onclick = closeMenu;
+document.querySelectorAll('.drawer-item').forEach(item => {
+  item.onclick = () => setActivePage(item.dataset.page);
+});
 document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('sign-out-btn').onclick = () => signOut(auth);
-if(rowsContainer) createRow(rowsContainer); 
+
+if(rowsContainer && rowsContainer.children.length === 0) createRow(rowsContainer);
