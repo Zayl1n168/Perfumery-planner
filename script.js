@@ -49,7 +49,7 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
   document.getElementById('user-info').style.display = user ? 'flex' : 'none';
   document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
-  if (user) document.getElementById('user-avatar').src = user.photoURL;
+  if (user && document.getElementById('user-avatar')) document.getElementById('user-avatar').src = user.photoURL;
   setActivePage('home');
 });
 document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
@@ -60,7 +60,7 @@ function createCard(d, isOwner) {
   const data = d.data();
   return `
     <div class="fragrance-card">
-      <div class="card-header-blue">
+      <div class="card-header-brand">
         <h3>${data.name}</h3>
       </div>
       <div class="card-body">
