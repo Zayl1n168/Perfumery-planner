@@ -41,6 +41,7 @@ function setActivePage(pageId) {
 
 document.querySelectorAll('.drawer-item').forEach(item => item.onclick = () => setActivePage(item.dataset.page));
 document.getElementById('menu-btn').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('show'); };
+document.getElementById('drawer-close').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('show'); };
 
 /* --- Auth --- */
 let currentUser = null;
@@ -48,37 +49,38 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
   document.getElementById('user-info').style.display = user ? 'flex' : 'none';
   document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
+  if (user) document.getElementById('user-avatar').src = user.photoURL;
   setActivePage('home');
 });
 document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('sign-out-btn').onclick = () => signOut(auth);
 
-/* --- Rendering Cards --- */
+/* --- UI Logic for Sketch Cards --- */
 function createCard(d, isOwner) {
   const data = d.data();
   return `
     <div class="fragrance-card">
-      <div class="card-label">
-        <span class="card-sub">${data.gender} • ${data.concentration}</span>
-        <h3 class="card-title">${data.name}</h3>
-        <span class="card-sub">BY ${data.author || 'ANONYMOUS'}</span>
+      <div class="card-header-blue">
+        <h3>${data.name}</h3>
       </div>
-      <div class="card-pyramid">
-        <div class="tier"><b>Top</b><p>${data.top_notes?.join(' • ') || '—'}</p></div>
-        <div class="tier"><b>Heart</b><p>${data.middle_notes?.join(' • ') || '—'}</p></div>
-        <div class="tier"><b>Base</b><p>${data.base_notes?.join(' • ') || '—'}</p></div>
+      <div class="card-body">
+        <p>By: <span>${data.author || 'Anonymous'}</span></p>
+        <p>Top notes: <span>${data.top_notes?.join(', ') || '—'}</span></p>
+        <p>Heart notes: <span>${data.middle_notes?.join(', ') || '—'}</span></p>
+        <p>Base notes: <span>${data.base_notes?.join(', ') || '—'}</span></p>
+        <p>Concentration: <span>${data.concentration || '—'}</span></p>
       </div>
       ${isOwner ? `
         <div class="card-actions">
-          <button class="text-btn" onclick="openEditModal('${d.id}', '${data.name}', '${data.top_notes?.join(',')}', '${data.middle_notes?.join(',')}', '${data.base_notes?.join(',')}')">EDIT</button>
-          <button class="text-btn del" onclick="deleteFormula('${d.id}')">REMOVE</button>
+          <button class="btn small" onclick="openEditModal('${d.id}', '${data.name}', '${data.top_notes?.join(',')}', '${data.middle_notes?.join(',')}', '${data.base_notes?.join(',')}')">Edit</button>
+          <button class="btn danger small" onclick="deleteFormula('${d.id}')">Delete</button>
         </div>` : ''}
     </div>`;
 }
 
 async function loadFeed(type) {
   const container = type === 'home' ? document.getElementById('cards') : document.getElementById('my-cards');
-  container.innerHTML = 'Loading...';
+  container.innerHTML = '<p>Accessing library...</p>';
   const q = type === 'home' ? query(collection(db, "formulas"), where("public", "==", true), limit(20)) : query(collection(db, "formulas"), where("uid", "==", currentUser?.uid));
   const snap = await getDocs(q);
   container.innerHTML = '';
@@ -112,7 +114,7 @@ document.getElementById('edit-form').onsubmit = async (e) => {
 };
 
 window.deleteFormula = async (id) => {
-  if(confirm("Delete this?")) {
+  if(confirm("Permanently delete this formula?")) {
     await deleteDoc(doc(db, "formulas", id));
     loadFeed('my');
   }
@@ -121,15 +123,19 @@ window.deleteFormula = async (id) => {
 /* --- Create --- */
 document.getElementById('formula-form').onsubmit = async (e) => {
   e.preventDefault();
+  if (!currentUser) return alert("Please sign in.");
   const payload = {
     name: document.getElementById('name').value,
-    top_notes: document.getElementById('top_notes').value.split(','),
-    middle_notes: document.getElementById('middle_notes').value.split(','),
-    base_notes: document.getElementById('base_notes').value.split(','),
+    top_notes: document.getElementById('top_notes').value.split(',').map(n => n.trim()),
+    middle_notes: document.getElementById('middle_notes').value.split(',').map(n => n.trim()),
+    base_notes: document.getElementById('base_notes').value.split(',').map(n => n.trim()),
     concentration: document.getElementById('concentration').value,
     gender: document.getElementById('gender').value,
     uid: currentUser.uid, author: currentUser.displayName, public: document.getElementById('public-checkbox').checked, createdAt: serverTimestamp()
   };
   await addDoc(collection(db, "formulas"), payload);
+  alert("Formula Recorded!");
   setActivePage('my');
 };
+
+setActivePage('home');
