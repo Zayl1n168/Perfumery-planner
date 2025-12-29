@@ -1,34 +1,48 @@
 :root {
-  --bg: #f4f4f4; --panel: #ffffff; --text: #000000; --muted: #444;
-  --border: #000000; --accent: #1e3a8a; --card-blue: #0000FF;
+  --bg: #f4f4f4; 
+  --panel: #ffffff; 
+  --text: #000000; 
+  --muted: #444;
+  --border: #000000; 
+  --accent: #1e3a8a; 
+  --brand-color: #0000FF; /* Blue in Light Mode */
+  --header-text: #ffffff;
 }
 
 body.dark {
-  --bg: #121212; --panel: #1e1e1e; --text: #ffffff; --muted: #bbb;
-  --border: #ffffff; --accent: #3b82f6; --card-blue: #0000AA;
+  --bg: #121212; 
+  --panel: #1e1e1e; 
+  --text: #ffffff; 
+  --muted: #bbb;
+  --border: #ffffff; 
+  --accent: #d4af37; /* Gold Accent */
+  --brand-color: #d4af37; /* Gold in Dark Mode */
+  --header-text: #000000; /* Black text on Gold header looks sharper */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
 
 /* === Sketch UI Design === */
 .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 20px; }
 
 .fragrance-card {
   background: var(--panel);
-  border: 4px solid var(--border); /* Thick border from sketch */
+  border: 4px solid var(--border);
   display: flex;
   flex-direction: column;
+  transition: border 0.3s;
 }
 
-.card-header-blue {
-  background: var(--card-blue); /* Blue block from sketch */
+.card-header-brand {
+  background: var(--brand-color); /* Swaps between Blue and Gold */
   padding: 15px;
   border-bottom: 4px solid var(--border);
+  transition: background 0.3s;
 }
 
-.card-header-blue h3 {
-  color: white;
+.card-header-brand h3 {
+  color: var(--header-text);
   font-size: 1.4rem;
   margin: 0;
   font-weight: 700;
@@ -52,13 +66,11 @@ body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--tex
 }
 
 /* === App UI Elements === */
-.app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: var(--accent); color: white; }
+.app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: var(--accent); color: white; transition: background 0.3s; }
 .logo-dot { width: 12px; height: 12px; background: gold; border-radius: 50%; margin-right: 8px; }
-.btn { padding: 6px 12px; border: none; cursor: pointer; background: var(--accent); color: white; font-weight: bold; }
-.btn.danger { background: #d32f2f; }
-.form-row { display: flex; gap: 10px; }
-form label { display: block; margin-top: 10px; font-weight: bold; }
-input, select, textarea { width: 100%; padding: 8px; border: 2px solid var(--border); margin-top: 4px; }
+.btn { padding: 6px 12px; border: none; cursor: pointer; background: var(--accent); color: var(--header-text); font-weight: bold; }
+.btn.danger { background: #d32f2f; color: white; }
+input, select, textarea { width: 100%; padding: 8px; border: 2px solid var(--border); margin-top: 4px; background: var(--panel); color: var(--text); }
 
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2000; }
 .modal-content { background: var(--panel); padding: 20px; border: 4px solid var(--border); width: 90%; max-width: 400px; }
