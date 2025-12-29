@@ -18,33 +18,42 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-/* --- Dynamic Entry --- */
-const rowsContainer = document.getElementById('ingredient-rows-container');
-const addRowBtn = document.getElementById('add-row-btn');
+/* --- Menu Functions --- */
+const drawer = document.getElementById('drawer');
+const overlay = document.getElementById('drawer-overlay');
 
-function createRow(container) {
-  const div = document.createElement('div');
-  div.className = 'ingredient-row';
-  div.innerHTML = `
-    <input type="text" placeholder="Material" class="ing-name" required style="flex:2">
-    <input type="number" step="0.01" placeholder="mL" class="ing-ml" required style="flex:1">
-    <select class="ing-cat" style="flex:1.2">
-      <option value="Citrus">🍋 Citrus</option>
-      <option value="Floral">🌸 Floral</option>
-      <option value="Woody">🪵 Woody</option>
-      <option value="Fresh">🌊 Fresh</option>
-      <option value="Sweet">🍯 Sweet</option>
-      <option value="Spicy">🌶️ Spicy</option>
-    </select>
-    <button type="button" class="remove-row">✕</button>`;
-  div.querySelector('.remove-row').onclick = () => div.remove();
-  container.appendChild(div);
+function openMenu() {
+  drawer.classList.add('open');
+  overlay.classList.add('show');
 }
-if(addRowBtn) addRowBtn.onclick = () => createRow(rowsContainer);
+
+function closeMenu() {
+  drawer.classList.remove('open');
+  overlay.classList.remove('show');
+}
+
+// FORCE CLOSE ON STARTUP
+window.addEventListener('load', closeMenu);
+
+/* --- Page Navigation --- */
+function setActivePage(pageId) {
+  const pages = ['page-home', 'page-my', 'page-create', 'page-settings'];
+  pages.forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+  
+  const target = document.getElementById('page-' + pageId);
+  if(target) target.style.display = 'block';
+  
+  closeMenu();
+  if (pageId === 'home') loadFeed('home');
+  if (pageId === 'my') loadFeed('my');
+}
 
 /* --- Scent Profile Visualizer --- */
 function getVisualizerHtml(comp) {
-  if (!Array.isArray(comp) || comp.length === 0) return '<div class="scent-profile-bar"></div>';
+  if (!Array.isArray(comp) || comp.length === 0) return '';
   const colors = { Citrus: '#FFD700', Floral: '#FF69B4', Woody: '#8B4513', Fresh: '#00FFFF', Sweet: '#FFA500', Spicy: '#FF4500' };
   const totals = {};
   let totalMl = 0;
@@ -53,7 +62,7 @@ function getVisualizerHtml(comp) {
     totals[c.category] = (totals[c.category] || 0) + val; 
     totalMl += val; 
   });
-  if (totalMl === 0) return '<div class="scent-profile-bar"></div>';
+  if (totalMl === 0) return '';
   let html = '<div class="scent-profile-bar">';
   for (const cat in totals) {
     const width = (totals[cat] / totalMl) * 100;
@@ -62,7 +71,7 @@ function getVisualizerHtml(comp) {
   return html + '</div>';
 }
 
-/* --- Scaling Logic --- */
+/* --- Scaling --- */
 window.updateScale = (id, baseJson) => {
   const multiplier = document.getElementById(`scale-${id}`).value;
   const base = JSON.parse(decodeURIComponent(baseJson));
@@ -93,7 +102,7 @@ function createCard(d, isOwner) {
         </div>
         ${comp.length > 0 ? `
           <div class="scaler-ui">
-            <label id="val-${d.id}">1x Batch</label>
+            <label id="val-${d.id}" style="font-size:0.7rem; font-weight:bold;">1x Batch</label>
             <input type="range" id="scale-${d.id}" min="1" max="50" value="1" oninput="updateScale('${d.id}', '${compJson}')">
           </div>` : ''}
       </div>
@@ -101,42 +110,7 @@ function createCard(d, isOwner) {
     </div>`;
 }
 
-/* --- Navigation & Menu --- */
-function setActivePage(pageId) {
-  const pages = { home: 'page-home', my: 'page-my', create: 'page-create', settings: 'page-settings' };
-  Object.values(pages).forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.style.display = 'none';
-  });
-  const activePage = document.getElementById(pages[pageId]);
-  if(activePage) activePage.style.display = 'block';
-  
-  closeMenu();
-  if (pageId === 'home') loadFeed('home');
-  if (pageId === 'my') loadFeed('my');
-}
-
-function openMenu() {
-  document.getElementById('drawer').classList.add('open');
-  document.getElementById('drawer-overlay').classList.add('show');
-}
-
-function closeMenu() {
-  document.getElementById('drawer').classList.remove('open');
-  document.getElementById('drawer-overlay').classList.remove('show');
-}
-
-/* --- Theme --- */
-const themeToggle = document.getElementById('theme-toggle');
-const applyTheme = (isDark) => {
-  document.body.classList.toggle('dark', isDark);
-  if(themeToggle) themeToggle.checked = isDark;
-  localStorage.setItem('prefTheme', isDark ? 'dark' : 'light');
-};
-themeToggle?.addEventListener('change', () => applyTheme(themeToggle.checked));
-applyTheme(localStorage.getItem('prefTheme') === 'dark');
-
-/* --- Firebase Logic --- */
+/* --- Firebase --- */
 let currentUser = null;
 onAuthStateChanged(auth, user => {
   currentUser = user;
@@ -145,6 +119,34 @@ onAuthStateChanged(auth, user => {
   if (user && document.getElementById('user-avatar')) document.getElementById('user-avatar').src = user.photoURL;
   setActivePage('home');
 });
+
+async function loadFeed(type) {
+  const container = type === 'home' ? document.getElementById('cards') : document.getElementById('my-cards');
+  if(!container) return;
+  container.innerHTML = '<p style="padding:20px">Loading Lab...</p>';
+  const q = type === 'home' ? query(collection(db, "formulas"), where("public", "==", true), limit(25)) : query(collection(db, "formulas"), where("uid", "==", currentUser?.uid));
+  const snap = await getDocs(q);
+  container.innerHTML = '';
+  snap.forEach(doc => container.insertAdjacentHTML('beforeend', createCard(doc, type === 'my')));
+}
+
+/* --- Form --- */
+const rowsContainer = document.getElementById('ingredient-rows-container');
+function createRow() {
+  const div = document.createElement('div');
+  div.className = 'ingredient-row';
+  div.innerHTML = `
+    <input type="text" placeholder="Material" class="ing-name" required style="flex:2">
+    <input type="number" step="0.01" placeholder="mL" class="ing-ml" required style="flex:1">
+    <select class="ing-cat" style="flex:1.2">
+      <option value="Citrus">🍋 Citrus</option><option value="Floral">🌸 Floral</option>
+      <option value="Woody">🪵 Woody</option><option value="Fresh">🌊 Fresh</option>
+      <option value="Sweet">🍯 Sweet</option><option value="Spicy">🌶️ Spicy</option>
+    </select>
+    <button type="button" class="remove-row">✕</button>`;
+  div.querySelector('.remove-row').onclick = () => div.remove();
+  rowsContainer.appendChild(div);
+}
 
 document.getElementById('formula-form').onsubmit = async (e) => {
   e.preventDefault();
@@ -165,31 +167,34 @@ document.getElementById('formula-form').onsubmit = async (e) => {
   setActivePage('my');
 };
 
-async function loadFeed(type) {
-  const container = type === 'home' ? document.getElementById('cards') : document.getElementById('my-cards');
-  if(!container) return;
-  container.innerHTML = '<p style="padding:20px">Loading Lab...</p>';
-  const q = type === 'home' ? query(collection(db, "formulas"), where("public", "==", true), limit(25)) : query(collection(db, "formulas"), where("uid", "==", currentUser?.uid));
-  const snap = await getDocs(q);
-  container.innerHTML = '';
-  snap.forEach(doc => container.insertAdjacentHTML('beforeend', createCard(doc, type === 'my')));
-}
-
-window.deleteFormula = async (id) => {
-  if(confirm("Permanently wipe this formula?")) {
-    await deleteDoc(doc(db, "formulas", id));
-    loadFeed('my');
-  }
-};
-
-/* --- Global Listeners --- */
+/* --- Global Events --- */
 document.getElementById('menu-btn').onclick = openMenu;
 document.getElementById('drawer-close').onclick = closeMenu;
 document.getElementById('drawer-overlay').onclick = closeMenu;
 document.querySelectorAll('.drawer-item').forEach(item => {
   item.onclick = () => setActivePage(item.dataset.page);
 });
+
+document.getElementById('add-row-btn').onclick = createRow;
 document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('sign-out-btn').onclick = () => signOut(auth);
 
-if(rowsContainer && rowsContainer.children.length === 0) createRow(rowsContainer);
+// Theme Toggle logic
+const themeToggle = document.getElementById('theme-toggle');
+themeToggle?.addEventListener('change', () => {
+  document.body.classList.toggle('dark', themeToggle.checked);
+  localStorage.setItem('prefTheme', themeToggle.checked ? 'dark' : 'light');
+});
+if(localStorage.getItem('prefTheme') === 'dark') {
+  document.body.classList.add('dark');
+  if(themeToggle) themeToggle.checked = true;
+}
+
+window.deleteFormula = async (id) => {
+  if(confirm("Delete this formula?")) {
+    await deleteDoc(doc(db, "formulas", id));
+    loadFeed('my');
+  }
+};
+
+if(rowsContainer) createRow(); // Initial row
