@@ -52,112 +52,32 @@
 
     <main class="main">
       <section id="page-home" class="page">
-        <div class="panel controls">
-          <div class="controls-row">
-            <div class="filter-group">
-              <label>Concentration
-                <select id="filter-concentration">
-                  <option value="all">All</option>
-                  <option value="EDC">EDC</option>
-                  <option value="EDT">EDT</option>
-                  <option value="EDP">EDP</option>
-                  <option value="Extrait">Extrait</option>
-                </select>
-              </label>
-
-              <label>Gender
-                <select id="filter-gender">
-                  <option value="all">All</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Unisex">Unisex</option>
-                </select>
-              </label>
-            </div>
-
-            <div class="sort-group">
-              <label>Sort
-                <select id="sort-by">
-                  <option value="recent">Most recent</option>
-                  <option value="oldest">Oldest</option>
-                </select>
-              </label>
-            </div>
-          </div>
-        </div>
-
         <div id="feed" class="feed">
-          <p id="feed-status" class="muted">Loading public formulas…</p>
           <div id="cards" class="card-grid"></div>
-          <div class="pager">
-            <button id="load-more-btn" class="btn" style="display:none">Load more</button>
-          </div>
         </div>
       </section>
 
       <section id="page-my" class="page" style="display:none">
         <div class="panel">
-          <h2>My Formulas</h2>
-          <p class="muted">Your private formulas are visible only to you.</p>
+          <h2>My Lab Notebook</h2>
           <div id="my-cards" class="card-grid"></div>
-          <p id="my-status" class="muted"></p>
         </div>
       </section>
 
       <section id="page-create" class="page" style="display:none">
         <div class="panel">
           <h2>Create New Formula</h2>
-          <div id="error-message" class="error" style="display:none; color: red; margin-bottom: 10px;"></div>
-          
           <form id="formula-form">
-            <div class="form-group">
-              <label>Formula Name</label>
-              <input type="text" id="name" placeholder="Enter fragrance name" required>
-            </div>
-
+            <div class="form-group"><label>Name</label><input type="text" id="name" required></div>
             <div class="form-row">
-              <div class="form-group">
-                <label>Concentration</label>
-                <select id="concentration">
-                  <option value="EDP">EDP</option>
-                  <option value="EDT">EDT</option>
-                  <option value="EDC">EDC</option>
-                  <option value="Extrait">Extrait</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Gender</label>
-                <select id="gender">
-                  <option value="Unisex">Unisex</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </select>
-              </div>
+              <div class="form-group"><label>Concentration</label><select id="concentration"><option>EDP</option><option>EDT</option><option>EDC</option><option>Extrait</option></select></div>
+              <div class="form-group"><label>Gender</label><select id="gender"><option>Unisex</option><option>Male</option><option>Female</option></select></div>
             </div>
-
-            <div class="form-group">
-              <label>Top Notes (comma separated)</label>
-              <textarea id="top_notes" placeholder="e.g. Lemon, Bergamot, Orange"></textarea>
-            </div>
-
-            <div class="form-group">
-              <label>Middle Notes</label>
-              <textarea id="middle_notes" placeholder="e.g. Rose, Jasmine"></textarea>
-            </div>
-
-            <div class="form-group">
-              <label>Base Notes</label>
-              <textarea id="base_notes" placeholder="e.g. Vanilla, Sandalwood"></textarea>
-            </div>
-
-            <div class="form-group">
-              <label class="checkbox-label">
-                <input type="checkbox" id="public-checkbox" checked>
-                <span>Make formula public</span>
-              </label>
-            </div>
-
-            <button type="submit" id="save-formula-button" class="btn primary">Save Formula</button>
+            <div class="form-group"><label>Top Notes (comma separated)</label><textarea id="top_notes"></textarea></div>
+            <div class="form-group"><label>Middle Notes</label><textarea id="middle_notes"></textarea></div>
+            <div class="form-group"><label>Base Notes</label><textarea id="base_notes"></textarea></div>
+            <div class="form-group"><label><input type="checkbox" id="public-checkbox" checked> Public</label></div>
+            <button type="submit" class="btn primary">Save Formula</button>
           </form>
         </div>
       </section>
@@ -165,23 +85,33 @@
       <section id="page-settings" class="page" style="display:none">
         <div class="panel">
           <h2>Settings</h2>
-          <div class="settings-grid">
-            <div class="settings-card">
-              <h4>Account</h4>
-              <p id="settings-account" class="muted">Manage your data</p>
-              <button id="export-btn" class="btn small">Export formulas (.txt)</button>
-              <button id="delete-all-btn" class="btn danger small">Clear Data</button>
-            </div>
-          </div>
+          <button id="export-btn" class="btn small">Export formulas (.txt)</button>
+          <button id="delete-all-btn" class="btn danger small">Clear Data</button>
         </div>
       </section>
     </main>
+
+    <div id="edit-modal" class="drawer-overlay" style="display:none; z-index: 2000; opacity: 1; visibility: visible; justify-content: center; align-items: center;">
+      <div class="panel" style="max-width: 500px; width: 90%; margin: auto; position: relative;">
+        <h3>Edit Formula</h3>
+        <form id="edit-form">
+          <input type="hidden" id="edit-id">
+          <label>Name</label><input type="text" id="edit-name" required>
+          <label>Top Notes</label><textarea id="edit-top"></textarea>
+          <label>Middle Notes</label><textarea id="edit-middle"></textarea>
+          <label>Base Notes</label><textarea id="edit-base"></textarea>
+          <div style="display:flex; gap:10px; margin-top:15px;">
+            <button type="submit" class="btn primary">Update</button>
+            <button type="button" id="edit-cancel" class="btn">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <footer class="app-footer">
       <small>Made by Zayl1n168 • NOT IFRA TESTED!!</small>
     </footer>
   </div>
-
   <script type="module" src="script.js"></script>
 </body>
 </html>
