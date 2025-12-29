@@ -56,32 +56,30 @@ onAuthStateChanged(auth, (user) => {
 document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('sign-out-btn').onclick = () => signOut(auth);
 
-/* --- UI Card Rendering --- */
+/* --- UI Logic --- */
 function createCard(d, isOwner) {
   const data = d.data();
   return `
     <div class="fragrance-card">
-      <div class="card-header-brand">
-        <h3>${data.name}</h3>
-      </div>
+      <div class="card-header-brand"><h3>${data.name}</h3></div>
       <div class="card-body">
-        <p>By: <span>${data.author || 'Anonymous'}</span></p>
-        <p>Top notes: <span>${data.top_notes?.join(', ') || '—'}</span></p>
-        <p>Heart notes: <span>${data.middle_notes?.join(', ') || '—'}</span></p>
-        <p>Base notes: <span>${data.base_notes?.join(', ') || '—'}</span></p>
-        <p>Concentration: <span>${data.concentration || '—'}</span></p>
+        <p>Lab Tech: <span>${data.author || 'Anonymous'}</span></p>
+        <p>Top: <span>${data.top_notes?.join(', ') || '—'}</span></p>
+        <p>Heart: <span>${data.middle_notes?.join(', ') || '—'}</span></p>
+        <p>Base: <span>${data.base_notes?.join(', ') || '—'}</span></p>
+        <p>Style: <span>${data.concentration} (${data.gender})</span></p>
       </div>
       ${isOwner ? `
         <div class="card-actions">
-          <button class="btn small" onclick="openEditModal('${d.id}', '${data.name}', '${data.top_notes?.join(',')}', '${data.middle_notes?.join(',')}', '${data.base_notes?.join(',')}')">Edit</button>
-          <button class="btn danger small" onclick="deleteFormula('${d.id}')">Delete</button>
+          <button class="btn small" onclick="openEditModal('${d.id}', '${data.name}', '${data.top_notes?.join(',')}', '${data.middle_notes?.join(',')}', '${data.base_notes?.join(',')}')">EDIT</button>
+          <button class="btn danger small" onclick="deleteFormula('${d.id}')">DELETE</button>
         </div>` : ''}
     </div>`;
 }
 
 async function loadFeed(type) {
   const container = type === 'home' ? document.getElementById('cards') : document.getElementById('my-cards');
-  container.innerHTML = '<p>Loading...</p>';
+  container.innerHTML = '<p>Syncing lab data...</p>';
   const q = type === 'home' ? query(collection(db, "formulas"), where("public", "==", true), limit(20)) : query(collection(db, "formulas"), where("uid", "==", currentUser?.uid));
   const snap = await getDocs(q);
   container.innerHTML = '';
@@ -115,7 +113,7 @@ document.getElementById('edit-form').onsubmit = async (e) => {
 };
 
 window.deleteFormula = async (id) => {
-  if(confirm("Delete formula?")) {
+  if(confirm("Permanently wipe this formula?")) {
     await deleteDoc(doc(db, "formulas", id));
     loadFeed('my');
   }
@@ -124,6 +122,7 @@ window.deleteFormula = async (id) => {
 /* --- Create --- */
 document.getElementById('formula-form').onsubmit = async (e) => {
   e.preventDefault();
+  if (!currentUser) return alert("Log in to save formulas.");
   const payload = {
     name: document.getElementById('name').value,
     top_notes: document.getElementById('top_notes').value.split(',').map(n => n.trim()),
