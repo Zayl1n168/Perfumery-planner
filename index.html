@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>Fragrance Lab Pro</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1e3a8a">
 </head>
 <body>
   <div id="app">
@@ -20,8 +24,8 @@
       </div>
     </header>
 
-    <div id="drawer-overlay"></div>
-    <nav id="drawer">
+    <div id="drawer-overlay" class="drawer-overlay"></div>
+    <nav id="drawer" class="drawer">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <h3>LABORATORY</h3>
         <button id="drawer-close" class="btn small">✕ CLOSE</button>
@@ -35,24 +39,31 @@
     </nav>
 
     <main>
-      <section id="page-home" class="page"><div id="cards" class="card-grid"></div></section>
+      <section id="page-home" class="page">
+        <div id="cards" class="card-grid"></div>
+      </section>
       
       <section id="page-my" class="page" style="display:none">
-        <div class="panel"><h2>MY NOTEBOOK</h2><div id="my-cards" class="card-grid"></div></div>
+        <div class="panel">
+          <h2>MY NOTEBOOK</h2>
+          <div id="my-cards" class="card-grid"></div>
+        </div>
       </section>
       
       <section id="page-create" class="page" style="display:none">
         <div class="panel">
-          <h2>CREATE FORMULA</h2>
+          <h2 id="form-title">CREATE FORMULA</h2>
           <form id="formula-form">
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-              <label>NAME <input type="text" id="name" required style="width:100%; margin:5px 0; padding:10px; border:2px solid black;"></label>
-              <label>TYPE
+              <label>NAME 
+                <input type="text" id="name" required style="width:100%; margin:5px 0; padding:10px; border:2px solid black;">
+              </label>
+              <label>CONCENTRATION
                 <select id="concentration-input" style="width:100%; margin:5px 0; padding:10px; border:2px solid black;">
-                  <option value="EDP">Eau de Parfum</option>
-                  <option value="EDT">Eau de Toilette</option>
-                  <option value="Extrait">Extrait</option>
-                  <option value="Cologne">Cologne</option>
+                  <option value="EDP">Eau de Parfum (EDP)</option>
+                  <option value="EDT">Eau de Toilette (EDT)</option>
+                  <option value="Extrait">Extrait de Parfum</option>
+                  <option value="Cologne">Eau de Cologne</option>
                 </select>
               </label>
             </div>
@@ -64,22 +75,42 @@
             
             <div id="ingredient-rows-container" style="margin-top:10px;"></div>
             
-            <label style="margin-top:20px; display:block;"><input type="checkbox" id="public-checkbox" checked> SHARE IN PUBLIC FEED</label>
-            <button type="submit" class="btn" style="width:100%; margin-top:20px;">SAVE TO LABORATORY</button>
+            <label style="margin-top:20px; display:block; cursor:pointer;">
+              <input type="checkbox" id="public-checkbox" checked> SHARE IN PUBLIC FEED
+            </label>
+            
+            <button type="submit" class="btn" style="width:100%; margin-top:20px; font-size:1.1rem;">
+              SAVE TO LABORATORY
+            </button>
           </form>
         </div>
       </section>
 
       <section id="page-settings" class="page" style="display:none">
         <div class="panel">
-          <h2>APP PREFERENCES</h2>
-          <label style="margin-top:20px; display:flex; align-items:center; gap:10px; cursor:pointer;">
-            <input type="checkbox" id="theme-toggle"> ENABLE DARK MODE (GOLD EDITION)
-          </label>
+          <h2>APP SETTINGS</h2>
+          
+          <div style="margin: 25px 0; padding: 15px; border: 2px dashed var(--border);">
+            <h3>DATA MANAGEMENT</h3>
+            <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 10px;">
+              Download a backup of all your personal formulas as a text file.
+            </p>
+            <button class="btn" onclick="exportData()" style="width:100%;">
+              💾 EXPORT ALL FORMULAS (.TXT)
+            </button>
+          </div>
+
+          <div style="margin-top:20px;">
+            <h3>APPEARANCE</h3>
+            <label style="margin-top:10px; display:flex; align-items:center; gap:10px; cursor:pointer;">
+              <input type="checkbox" id="theme-toggle"> ENABLE DARK MODE (GOLD EDITION)
+            </label>
+          </div>
         </div>
       </section>
     </main>
   </div>
+  
   <script type="module" src="script.js"></script>
 </body>
 </html>
