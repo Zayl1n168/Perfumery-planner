@@ -35,7 +35,8 @@ const menuBtn = document.getElementById('menu-btn');
 
 /* ---------- Navigation & Theme ---------- */
 const applyTheme = (isDark) => {
-  document.body.classList.toggle('dark-mode', isDark);
+  // Your CSS uses .dark, so we toggle that
+  document.body.classList.toggle('dark', isDark);
   if (themeToggle) themeToggle.checked = isDark;
   localStorage.setItem('prefTheme', isDark ? 'dark' : 'light');
 };
@@ -65,8 +66,8 @@ document.getElementById('drawer-close')?.addEventListener('click', () => {
 });
 
 drawerOverlay?.addEventListener('click', () => {
-    drawer?.classList.remove('open');
-    drawerOverlay?.classList.remove('show');
+  drawer?.classList.remove('open');
+  drawerOverlay?.classList.remove('show');
 });
 
 document.querySelectorAll('.drawer-item').forEach(item => {
@@ -102,26 +103,45 @@ async function loadPublicFeed() {
   feedCards.innerHTML = '<p class="muted">Scanning the fragrance library...</p>';
 
   try {
-    const q = query(collection(db, "formulas"), where("public", "==", true), orderBy("createdAt", "desc"), limit(25));
+    const q = query(
+      collection(db, "formulas"),
+      where("public", "==", true),
+      orderBy("createdAt", "desc"),
+      limit(25)
+    );
+
     const snap = await getDocs(q);
     feedCards.innerHTML = '';
+
     if (snap.empty) {
-        feedCards.innerHTML = '<p class="muted">No public formulas yet.</p>';
-        return;
+      feedCards.innerHTML = '<p class="muted">No public formulas yet.</p>';
+      return;
     }
+
     snap.forEach((doc) => {
       const data = doc.data();
       feedCards.insertAdjacentHTML('beforeend', `
         <div class="card">
-          <h3>${data.name}</h3>
-          <p class="muted">${data.concentration} | By ${data.author}</p>
+          <div class="card-header">
+            <h3>${data.name}</h3>
+            <span class="badge">${data.concentration}</span>
+          </div>
+          <p><strong>Top:</strong> ${data.top_notes?.join(', ') || 'N/A'}</p>
+          <p><strong>Heart:</strong> ${data.middle_notes?.join(', ') || 'N/A'}</p>
+          <p><strong>Base:</strong> ${data.base_notes?.join(', ') || 'N/A'}</p>
+          <div class="card-footer" style="margin-top:10px; border-top: 1px solid var(--border); padding-top:5px;">
+            <small>By ${data.author} • ${data.gender}</small>
+          </div>
         </div>
       `);
     });
-  } catch (err) { feedCards.innerHTML = '<p class="error">Error loading feed.</p>'; }
+  } catch (err) {
+    console.error(err);
+    feedCards.innerHTML = '<p class="error">Unable to load feed.</p>';
+  }
 }
 
-/* ---------- Create & My Formulas ---------- */
+/* ---------- Create Formula Logic ---------- */
 formulaForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!currentUser) return alert("Sign in first!");
@@ -144,65 +164,91 @@ formulaForm?.addEventListener('submit', async (e) => {
   try {
     await addDoc(collection(db, "formulas"), payload);
     formulaForm.reset();
+    alert("Formula Saved!");
     setActivePage('home');
-  } catch (err) { alert("Error: " + err.message); }
+  } catch (err) {
+    alert("Save Error: " + err.message);
+  }
 });
 
+/* ---------- My Formulas Logic ---------- */
 async function renderMyFormulas() {
   const myCards = document.getElementById('my-cards');
   if (!myCards || !currentUser) return;
-  myCards.innerHTML = '<p class="muted">Opening your lab notebook...</p>';
+  myCards.innerHTML = '<p class="muted">Fetching your notebook...</p>';
 
   const q = query(collection(db, "formulas"), where("uid", "==", currentUser.uid), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   myCards.innerHTML = '';
   
+  if (snap.empty) {
+      myCards.innerHTML = '<p class="muted">You haven\'t created any formulas yet.</p>';
+      return;
+  }
+
   snap.forEach(d => {
     const data = d.data();
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `
         <h3>${data.name}</h3>
-        <p class="muted">${data.public ? '🌍 Public' : '🔒 Private'}</p>
-        <button class="btn danger small delete-btn" data-id="${d.id}">Delete</button>
+        <p class="muted">${data.concentration} | ${data.public ? '🌍 Public' : '🔒 Private'}</p>
+        <button class="btn danger small delete-btn" style="margin-top:10px;" data-id="${d.id}">Delete Formula</button>
     `;
-    card.querySelector('.delete-btn').onclick = () => deleteOne(d.id);
+    card.querySelector('.delete-btn').onclick = () => deleteFormula(d.id);
     myCards.appendChild(card);
   });
 }
 
-async function deleteOne(id) {
-    if(confirm("Delete this formula?")) {
-        await deleteDoc(doc(db, "formulas", id));
-        renderMyFormulas();
+async function deleteFormula(id) {
+    if(confirm("Are you sure you want to delete this formula forever?")) {
+        try {
+            await deleteDoc(doc(db, "formulas", id));
+            renderMyFormulas();
+        } catch (err) {
+            alert("Delete failed: " + err.message);
+        }
     }
 }
 
-/* ---------- Settings: Export & Clear ---------- */
+/* ---------- Settings Logic ---------- */
 document.getElementById('export-btn')?.addEventListener('click', async () => {
-    if (!currentUser) return alert("Sign in to export!");
-    const q = query(collection(db, "formulas"), where("uid", "==", currentUser.uid));
-    const snap = await getDocs(q);
-    const data = snap.docs.map(d => d.data());
+    if (!currentUser) return alert("Sign in to export your data!");
     
-    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'text/plain'});
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `my_formulas_${new Date().toLocaleDateString()}.txt`;
-    link.click();
+    try {
+        const q = query(collection(db, "formulas"), where("uid", "==", currentUser.uid));
+        const snap = await getDocs(q);
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'text/plain'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `fragrance_backup_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert("Export failed: " + err.message);
+    }
 });
 
 document.getElementById('delete-all-btn')?.addEventListener('click', async () => {
     if (!currentUser) return alert("Sign in first!");
-    if (confirm("DANGER: Wipe ALL your formulas? This cannot be undone.")) {
-        const q = query(collection(db, "formulas"), where("uid", "==", currentUser.uid));
-        const snap = await getDocs(q);
-        const batch = snap.docs.map(d => deleteDoc(doc(db, "formulas", d.id)));
-        await Promise.all(batch);
-        alert("Lab cleaned!");
-        setActivePage('home');
+    if (confirm("DANGER: This will delete ALL your formulas from our servers. This cannot be undone. Proceed?")) {
+        try {
+            const q = query(collection(db, "formulas"), where("uid", "==", currentUser.uid));
+            const snap = await getDocs(q);
+            const batch = snap.docs.map(d => deleteDoc(doc(db, "formulas", d.id)));
+            await Promise.all(batch);
+            alert("Lab records cleared.");
+            setActivePage('home');
+        } catch (err) {
+            alert("Clear failed: " + err.message);
+        }
     }
 });
 
+// Start on Home
 setActivePage('home');
