@@ -19,7 +19,6 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 /* --- Navigation & Theme --- */
-const pages = { home: document.getElementById('page-home'), my: document.getElementById('page-my'), create: document.getElementById('page-create'), settings: document.getElementById('page-settings') };
 const themeToggle = document.getElementById('theme-toggle');
 
 const applyTheme = (isDark) => {
@@ -27,12 +26,14 @@ const applyTheme = (isDark) => {
   if (themeToggle) themeToggle.checked = isDark;
   localStorage.setItem('prefTheme', isDark ? 'dark' : 'light');
 };
+
 themeToggle?.addEventListener('change', () => applyTheme(themeToggle.checked));
 applyTheme(localStorage.getItem('prefTheme') === 'dark');
 
 function setActivePage(pageId) {
-  Object.values(pages).forEach(p => p.style.display = 'none');
-  pages[pageId].style.display = 'block';
+  const pages = { home: 'page-home', my: 'page-my', create: 'page-create', settings: 'page-settings' };
+  Object.values(pages).forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById(pages[pageId]).style.display = 'block';
   if (pageId === 'home') loadFeed('home');
   if (pageId === 'my') loadFeed('my');
   document.getElementById('drawer').classList.remove('open');
@@ -55,7 +56,7 @@ onAuthStateChanged(auth, (user) => {
 document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('sign-out-btn').onclick = () => signOut(auth);
 
-/* --- UI Logic for Sketch Cards --- */
+/* --- UI Card Rendering --- */
 function createCard(d, isOwner) {
   const data = d.data();
   return `
@@ -80,7 +81,7 @@ function createCard(d, isOwner) {
 
 async function loadFeed(type) {
   const container = type === 'home' ? document.getElementById('cards') : document.getElementById('my-cards');
-  container.innerHTML = '<p>Accessing library...</p>';
+  container.innerHTML = '<p>Loading...</p>';
   const q = type === 'home' ? query(collection(db, "formulas"), where("public", "==", true), limit(20)) : query(collection(db, "formulas"), where("uid", "==", currentUser?.uid));
   const snap = await getDocs(q);
   container.innerHTML = '';
@@ -114,7 +115,7 @@ document.getElementById('edit-form').onsubmit = async (e) => {
 };
 
 window.deleteFormula = async (id) => {
-  if(confirm("Permanently delete this formula?")) {
+  if(confirm("Delete formula?")) {
     await deleteDoc(doc(db, "formulas", id));
     loadFeed('my');
   }
@@ -123,7 +124,6 @@ window.deleteFormula = async (id) => {
 /* --- Create --- */
 document.getElementById('formula-form').onsubmit = async (e) => {
   e.preventDefault();
-  if (!currentUser) return alert("Please sign in.");
   const payload = {
     name: document.getElementById('name').value,
     top_notes: document.getElementById('top_notes').value.split(',').map(n => n.trim()),
@@ -134,8 +134,5 @@ document.getElementById('formula-form').onsubmit = async (e) => {
     uid: currentUser.uid, author: currentUser.displayName, public: document.getElementById('public-checkbox').checked, createdAt: serverTimestamp()
   };
   await addDoc(collection(db, "formulas"), payload);
-  alert("Formula Recorded!");
   setActivePage('my');
 };
-
-setActivePage('home');
