@@ -1,6 +1,5 @@
-// script.js — Full Fragrance Maker Logic
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, orderBy, limit, getDocs, serverTimestamp 
+import { getFirestore, collection, addDoc, query, where, orderBy, limit, getDocs, serverTimestamp, deleteDoc, doc 
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut 
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
@@ -65,6 +64,11 @@ document.getElementById('drawer-close')?.addEventListener('click', () => {
   drawerOverlay?.classList.remove('show');
 });
 
+drawerOverlay?.addEventListener('click', () => {
+    drawer?.classList.remove('open');
+    drawerOverlay?.classList.remove('show');
+});
+
 document.querySelectorAll('.drawer-item').forEach(item => {
   item.addEventListener('click', () => setActivePage(item.dataset.page));
 });
@@ -85,7 +89,7 @@ onAuthStateChanged(auth, (user) => {
     if (signInBtn) signInBtn.style.display = 'block';
     if (userInfo) userInfo.style.display = 'none';
   }
-  loadPublicFeed(); // Always try to load feed regardless of auth
+  loadPublicFeed();
 });
 
 document.getElementById('sign-in-btn')?.addEventListener('click', () => signInWithPopup(auth, provider));
@@ -95,53 +99,29 @@ document.getElementById('sign-out-btn')?.addEventListener('click', () => signOut
 async function loadPublicFeed() {
   const feedCards = document.getElementById('cards');
   if (!feedCards) return;
-
   feedCards.innerHTML = '<p class="muted">Scanning the fragrance library...</p>';
 
   try {
-    const q = query(
-      collection(db, "formulas"),
-      where("public", "==", true),
-      orderBy("createdAt", "desc"),
-      limit(25)
-    );
-
+    const q = query(collection(db, "formulas"), where("public", "==", true), orderBy("createdAt", "desc"), limit(25));
     const snap = await getDocs(q);
     feedCards.innerHTML = '';
-
     if (snap.empty) {
-      feedCards.innerHTML = '<p class="muted">No public formulas yet. Create one to share!</p>';
-      return;
+        feedCards.innerHTML = '<p class="muted">No public formulas yet.</p>';
+        return;
     }
-
     snap.forEach((doc) => {
       const data = doc.data();
-      const cardHtml = `
+      feedCards.insertAdjacentHTML('beforeend', `
         <div class="card">
-          <div class="card-header">
-            <h3>${data.name}</h3>
-            <span class="badge">${data.concentration}</span>
-          </div>
-          <div class="card-content">
-            <p><strong>Top:</strong> ${data.top_notes?.join(', ') || 'N/A'}</p>
-            <p><strong>Heart:</strong> ${data.middle_notes?.join(', ') || 'N/A'}</p>
-            <p><strong>Base:</strong> ${data.base_notes?.join(', ') || 'N/A'}</p>
-          </div>
-          <div class="card-footer">
-            <small>By ${data.author}</small>
-            <small>${data.gender}</small>
-          </div>
+          <h3>${data.name}</h3>
+          <p class="muted">${data.concentration} | By ${data.author}</p>
         </div>
-      `;
-      feedCards.insertAdjacentHTML('beforeend', cardHtml);
+      `);
     });
-  } catch (err) {
-    console.error("Feed Error:", err);
-    feedCards.innerHTML = '<p class="error">Unable to load formulas. Check your Firebase Rules or Browser Console.</p>';
-  }
+  } catch (err) { feedCards.innerHTML = '<p class="error">Error loading feed.</p>'; }
 }
 
-/* ---------- Create Formula Logic ---------- */
+/* ---------- Create & My Formulas ---------- */
 formulaForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!currentUser) return alert("Sign in first!");
@@ -164,28 +144,65 @@ formulaForm?.addEventListener('submit', async (e) => {
   try {
     await addDoc(collection(db, "formulas"), payload);
     formulaForm.reset();
-    alert("Formula Shared!");
     setActivePage('home');
-  } catch (err) {
-    alert("Save Error: " + err.message);
-  }
+  } catch (err) { alert("Error: " + err.message); }
 });
 
-/* ---------- My Formulas Logic ---------- */
 async function renderMyFormulas() {
   const myCards = document.getElementById('my-cards');
   if (!myCards || !currentUser) return;
-  myCards.innerHTML = '<p class="muted">Fetching your lab notebook...</p>';
+  myCards.innerHTML = '<p class="muted">Opening your lab notebook...</p>';
 
   const q = query(collection(db, "formulas"), where("uid", "==", currentUser.uid), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   myCards.innerHTML = '';
   
-  snap.forEach(doc => {
-    const data = doc.data();
-    myCards.insertAdjacentHTML('beforeend', `<div class="card"><h3>${data.name}</h3><p>${data.public ? '🌍 Public' : '🔒 Private'}</p></div>`);
+  snap.forEach(d => {
+    const data = d.data();
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+        <h3>${data.name}</h3>
+        <p class="muted">${data.public ? '🌍 Public' : '🔒 Private'}</p>
+        <button class="btn danger small delete-btn" data-id="${d.id}">Delete</button>
+    `;
+    card.querySelector('.delete-btn').onclick = () => deleteOne(d.id);
+    myCards.appendChild(card);
   });
 }
 
-// Start on Home
+async function deleteOne(id) {
+    if(confirm("Delete this formula?")) {
+        await deleteDoc(doc(db, "formulas", id));
+        renderMyFormulas();
+    }
+}
+
+/* ---------- Settings: Export & Clear ---------- */
+document.getElementById('export-btn')?.addEventListener('click', async () => {
+    if (!currentUser) return alert("Sign in to export!");
+    const q = query(collection(db, "formulas"), where("uid", "==", currentUser.uid));
+    const snap = await getDocs(q);
+    const data = snap.docs.map(d => d.data());
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `my_formulas_${new Date().toLocaleDateString()}.txt`;
+    link.click();
+});
+
+document.getElementById('delete-all-btn')?.addEventListener('click', async () => {
+    if (!currentUser) return alert("Sign in first!");
+    if (confirm("DANGER: Wipe ALL your formulas? This cannot be undone.")) {
+        const q = query(collection(db, "formulas"), where("uid", "==", currentUser.uid));
+        const snap = await getDocs(q);
+        const batch = snap.docs.map(d => deleteDoc(doc(db, "formulas", d.id)));
+        await Promise.all(batch);
+        alert("Lab cleaned!");
+        setActivePage('home');
+    }
+});
+
 setActivePage('home');
