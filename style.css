@@ -1,50 +1,52 @@
-/* === BASE RESET === */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100%; line-height: 1.5; transition: 0.3s; }
-
 :root {
-  --bg: #f4f4f4; --panel: #ffffff; --text: #1c1c1c; --muted: #555;
-  --border: #ddd; --accent: #1e3a8a; --btn-bg: #1e3a8a; --btn-text: #fff;
+  --bg: #f8f8f8; --panel: #ffffff; --text: #1a1a1a; --muted: #777;
+  --border: #e0e0e0; --accent: #1e3a8a;
 }
-
 body.dark {
-  --bg: #0d0d0f; --panel: #18181b; --text: #e6e6e6; --muted: #aaa;
-  --border: #333; --accent: #3b82f6; --btn-bg: #3b82f6; --btn-text: #fff;
+  --bg: #0f0f0f; --panel: #1a1a1a; --text: #f0f0f0; --muted: #999;
+  --border: #333; --accent: #3b82f6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); transition: 0.3s; }
+
+.app-header { display: flex; align-items: center; justify-content: space-between; padding: 15px 25px; background: var(--accent); color: white; position: sticky; top: 0; z-index: 900; }
+.logo-dot { width: 12px; height: 12px; background: #ffd700; border-radius: 50%; margin-right: 10px; }
+.logo-link { font-weight: 800; font-size: 1.2rem; cursor: pointer; }
+
+/* === Fragrance Card UI === */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; padding: 25px; }
+
+.fragrance-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 30px;
+  border-radius: 2px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
 }
 
-/* === APP STRUCTURE === */
-.app { display: flex; flex-direction: column; min-height: 100vh; }
-.app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: var(--accent); color: white; position: sticky; top: 0; z-index: 900; }
-.brand { display: flex; align-items: center; gap: 10px; }
-.logo-dot { width: 14px; height: 14px; background: gold; border-radius: 50%; }
-.logo-link { color: white; font-size: 1.2rem; font-weight: 600; cursor: pointer; text-decoration: none; }
-.byline { font-size: 0.75rem; color: rgba(255,255,255,0.8); }
+.card-label { text-align: center; border-bottom: 2px solid var(--text); padding-bottom: 15px; margin-bottom: 20px; }
+.card-title { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin: 5px 0; text-transform: uppercase; letter-spacing: 1px; }
+.card-sub { font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); }
 
-/* === BUTTONS === */
-.btn { background: var(--btn-bg); color: var(--btn-text); border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
-.btn:hover { opacity: 0.85; }
-.btn.small { padding: 6px 10px; font-size: 0.8rem; }
+.card-pyramid { flex-grow: 1; display: flex; flex-direction: column; gap: 10px; }
+.tier { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px dotted var(--border); padding-bottom: 4px; }
+.tier b { font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; }
+.tier p { font-size: 0.85rem; font-family: monospace; color: var(--muted); text-align: right; }
+
+.card-actions { margin-top: 25px; display: flex; justify-content: center; gap: 15px; }
+.text-btn { background: none; border: none; font-size: 0.7rem; font-weight: 800; letter-spacing: 1px; cursor: pointer; color: var(--text); text-decoration: underline; }
+.text-btn.del { color: #cc3333; }
+
+/* === Modal === */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+.modal-content { background: var(--panel); padding: 30px; width: 90%; max-width: 450px; border-radius: 4px; }
+
+/* Existing Utils */
+.btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; background: var(--accent); color: white; }
 .btn.danger { background: #d32f2f; }
-.btn.primary { background: #2563eb; }
-
-/* === FORMS === */
-form label { display: block; margin-top: 10px; font-weight: 500; font-size: 0.9rem; }
-form input, form select, form textarea { width: 100%; padding: 8px; margin-top: 4px; border-radius: 4px; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
-
-/* === PANELS & CARDS === */
-.panel { background: var(--panel); border-radius: 8px; padding: 20px; margin: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
-.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; padding: 20px; }
-.card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; position: relative; }
-
-/* === NAV DRAWER === */
-.drawer { position: fixed; top: 0; left: 0; height: 100%; width: 260px; background: var(--accent); color: white; transform: translateX(-100%); transition: 0.3s; z-index: 1000; padding: 16px; }
-.drawer.open { transform: translateX(0); }
+.drawer { position: fixed; left: -280px; top: 0; width: 280px; height: 100%; background: var(--accent); color: white; transition: 0.3s; z-index: 1000; padding: 20px; }
+.drawer.open { left: 0; }
 .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); visibility: hidden; opacity: 0; transition: 0.3s; z-index: 999; }
 .drawer-overlay.show { visibility: visible; opacity: 1; }
-.drawer-item { padding: 12px 10px; cursor: pointer; border-radius: 4px; }
-.drawer-item:hover { background: rgba(255,255,255,0.2); }
-
-.menu-btn { background: none; border: none; color: white; font-size: 22px; cursor: pointer; }
-.avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
-
-.app-footer { padding: 20px; text-align: center; font-size: 0.8rem; color: var(--muted); border-top: 1px solid var(--border); background: var(--panel); margin-top: auto; }
