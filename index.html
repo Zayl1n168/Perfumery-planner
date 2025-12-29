@@ -3,33 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Fragrance Maker</title>
+  <title>Fragrance Lab Pro</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="app" class="app">
+  <div id="app">
     <header class="app-header">
       <button id="menu-btn" class="menu-btn">☰</button>
-      <div class="brand">
-        <div class="logo-dot"></div>
-        <a id="nav-home" class="logo-link">Fragrance Maker</a>
-      </div>
-      <div class="header-right">
+      <div class="brand"><div class="logo-dot"></div><a id="nav-home" class="logo-link">Fragrance Lab</a></div>
+      <div id="auth-area">
         <button id="sign-in-btn" class="btn small">Sign in</button>
-        <div id="user-info" style="display:none">
-          <img id="user-avatar" class="avatar" alt="Profile">
-          <button id="sign-out-btn" class="btn small">Sign out</button>
-        </div>
+        <div id="user-info" style="display:none"><img id="user-avatar" class="avatar"><button id="sign-out-btn" class="btn small">Exit</button></div>
       </div>
     </header>
 
     <nav id="drawer" class="drawer">
-      <div class="drawer-header"><h3>Menu</h3><button id="drawer-close">✕</button></div>
+      <div class="drawer-header"><h3>Laboratory</h3><button id="drawer-close">✕</button></div>
       <ul class="drawer-list">
-        <li class="drawer-item" data-page="home">🏠 Home Feed</li>
-        <li class="drawer-item" data-page="my">🧴 My Lab</li>
-        <li class="drawer-item" data-page="create">✏️ Create</li>
+        <li class="drawer-item" data-page="home">🏠 Public Library</li>
+        <li class="drawer-item" data-page="my">🧴 My Formulas</li>
+        <li class="drawer-item" data-page="create">✏️ New Composition</li>
         <li class="drawer-item" data-page="settings">⚙️ Settings</li>
       </ul>
     </nav>
@@ -37,59 +31,44 @@
 
     <main>
       <section id="page-home" class="page"><div id="cards" class="card-grid"></div></section>
+      <section id="page-my" class="page" style="display:none"><div class="panel"><h2>My Notebook</h2><div id="my-cards" class="card-grid"></div></div></section>
       
-      <section id="page-my" class="page" style="display:none">
-        <div class="panel"><h2>My Lab Notebook</h2><div id="my-cards" class="card-grid"></div></div>
-      </section>
-
       <section id="page-create" class="page" style="display:none">
         <div class="panel">
-          <h2>New Formula</h2>
+          <h2>Create Composition</h2>
           <form id="formula-form">
-            <label>Name <input type="text" id="name" required></label>
+            <label>Formula Name <input type="text" id="name" required></label>
             <div class="form-row" style="display:flex; gap:10px;">
               <select id="concentration"><option>EDP</option><option>EDT</option><option>Extrait</option></select>
               <select id="gender"><option>Unisex</option><option>Male</option><option>Female</option></select>
             </div>
-            <label>Top Notes <textarea id="top_notes" placeholder="Lemon, Bergamot..."></textarea></label>
-            <label>Heart Notes <textarea id="middle_notes" placeholder="Rose, Jasmine..."></textarea></label>
-            <label>Base Notes <textarea id="base_notes" placeholder="Vanilla, Musk..."></textarea></label>
-            <label><input type="checkbox" id="public-checkbox" checked> Public Formula</label>
-            <button type="submit" class="btn primary">Save to Lab</button>
+            
+            <div style="margin-top:20px; display:flex; justify-content:space-between;">
+              <h3>Ingredients (mL)</h3>
+              <button type="button" id="add-row-btn" class="btn small">+ Add Material</button>
+            </div>
+            <div id="ingredient-rows-container"></div>
+            
+            <label style="margin-top:20px;"><input type="checkbox" id="public-checkbox" checked> Public Formula</label>
+            <button type="submit" class="btn primary" style="width:100%; margin-top:20px;">Save Formula</button>
           </form>
         </div>
       </section>
 
       <section id="page-settings" class="page" style="display:none">
         <div class="panel">
-          <h2>App Settings</h2>
-          <div class="setting-item" style="margin: 20px 0; display: flex; align-items: center; gap: 10px;">
-            <label class="switch-container">
-              <input type="checkbox" id="theme-toggle">
-              <span class="slider"></span>
-            </label>
-            <span>Enable Dark Mode (Gold Edition)</span>
-          </div>
-          <hr style="border: 1px solid var(--border); margin: 20px 0;">
-          <button id="export-btn" class="btn small">Export Data (JSON)</button>
+          <h2>Preferences</h2>
+          <label style="display:flex; align-items:center; gap:10px; margin:20px 0;">
+            <input type="checkbox" id="theme-toggle"> Enable Dark Mode (Gold Edition)
+          </label>
         </div>
       </section>
     </main>
 
     <div id="edit-modal" class="modal-overlay" style="display:none;">
       <div class="modal-content">
-        <h3>Edit Formula</h3>
-        <form id="edit-form">
-          <input type="hidden" id="edit-id">
-          <label>Name <input type="text" id="edit-name" required></label>
-          <label>Top <textarea id="edit-top"></textarea></label>
-          <label>Heart <textarea id="edit-middle"></textarea></label>
-          <label>Base <textarea id="edit-base"></textarea></label>
-          <div style="margin-top:15px; display:flex; gap:10px;">
-            <button type="submit" class="btn primary">Update</button>
-            <button type="button" id="edit-cancel" class="btn">Cancel</button>
-          </div>
-        </form>
+        <h3>Edit Lab Note</h3>
+        <form id="edit-form"><input type="hidden" id="edit-id"><div id="edit-rows-container"></div><button type="submit" class="btn primary">Update</button></form>
       </div>
     </div>
   </div>
