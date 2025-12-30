@@ -173,5 +173,44 @@ document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () =>
 document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('sign-out-btn').onclick = () => signOut(auth);
 
-// --- 4. INVENTORY & CREATE ---
-// (Ensure your existing createRow and form submit logic from the previous message is kept here)
+// --- 4. INVENTORY & CREATE LOGIC ---
+
+function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' }) {
+    const container = document.getElementById('ingredient-rows-container');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = 'ingredient-row';
+    div.style = "display:flex; gap:5px; margin-bottom:8px;";
+    div.innerHTML = `
+        <select class="ing-type" style="flex:1"><option value="Top">T</option><option value="Heart">H</option><option value="Base">B</option></select>
+        <input type="text" placeholder="Material" class="ing-name" value="${data.name}" required style="flex:2">
+        <input type="number" step="0.01" placeholder="mL" class="ing-ml" value="${data.ml}" required style="flex:1">
+        <select class="ing-cat" style="flex:1">${ACCORDS.map(a => `<option value="${a.val}">${a.icon}</option>`).join('')}</select>
+        <button type="button" class="remove-row" style="background:#ff4d4d; color:white; border:none; border-radius:5px; width:30px;">×</button>
+    `;
+    div.querySelector('.remove-row').onclick = () => div.remove();
+    container.appendChild(div);
+}
+
+// Handle Inventory Form Submit
+const invForm = document.getElementById('inventory-form');
+if (invForm) {
+    invForm.onsubmit = async (e) => {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('inv-name').value.trim(),
+            qty: parseFloat(document.getElementById('inv-qty').value),
+            price: parseFloat(document.getElementById('inv-price').value),
+            size: parseFloat(document.getElementById('inv-size').value),
+            uid: auth.currentUser.uid,
+            createdAt: serverTimestamp()
+        };
+        await addDoc(collection(db, "inventory"), data);
+        invForm.reset();
+        await loadInventoryCache(); 
+    };
+}
+
+// Initialize first row for Formula Creator
+document.getElementById('add-row-btn').onclick = () => createRow();
+createRow(); 
