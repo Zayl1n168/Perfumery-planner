@@ -26,13 +26,14 @@
 
     <div id="drawer-overlay" class="drawer-overlay"></div>
     <nav id="drawer" class="drawer">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 30px;">
         <h3>LABORATORY</h3>
         <button id="drawer-close" class="btn small">✕ CLOSE</button>
       </div>
-      <ul style="list-style:none; margin-top:25px;">
+      <ul style="list-style:none;">
         <li class="drawer-item" data-page="home">🏠 PUBLIC FEED</li>
         <li class="drawer-item" data-page="my">🧴 MY NOTEBOOK</li>
+        <li class="drawer-item" data-page="inventory">🧪 STOCKROOM</li>
         <li class="drawer-item" data-page="create">✏️ NEW FORMULA</li>
         <li class="drawer-item" data-page="settings">⚙️ SETTINGS</li>
       </ul>
@@ -49,17 +50,37 @@
           <div id="my-cards" class="card-grid"></div>
         </div>
       </section>
+
+      <section id="page-inventory" class="page" style="display:none">
+        <div class="panel">
+          <h2>STOCKROOM</h2>
+          <p style="font-size:0.85rem; color:var(--muted); margin-bottom:20px;">
+            Manage your materials and set prices to calculate formula costs.
+          </p>
+          
+          <form id="inventory-form" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:25px;">
+            <input type="text" id="inv-name" placeholder="Material Name (e.g. ISO E Super)" required style="grid-column: span 2;">
+            <input type="number" step="0.01" id="inv-qty" placeholder="Stock Level (mL)" required>
+            <input type="number" step="0.01" id="inv-price" placeholder="Total Price Paid ($)" required>
+            <input type="number" step="0.01" id="inv-size" placeholder="Bottle Size (mL)" required>
+            <button type="submit" class="btn" style="grid-column: span 2;">+ ADD TO STOCKROOM</button>
+          </form>
+
+          <div id="inventory-list" class="composition-list">
+            </div>
+        </div>
+      </section>
       
       <section id="page-create" class="page" style="display:none">
         <div class="panel">
           <h2 id="form-title">CREATE FORMULA</h2>
           <form id="formula-form">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
               <label>NAME 
-                <input type="text" id="name" required style="width:100%; margin:5px 0; padding:10px; border:2px solid black;">
+                <input type="text" id="name" required placeholder="Scent Name">
               </label>
               <label>CONCENTRATION
-                <select id="concentration-input" style="width:100%; margin:5px 0; padding:10px; border:2px solid black;">
+                <select id="concentration-input">
                   <option value="EDP">Eau de Parfum (EDP)</option>
                   <option value="EDT">Eau de Toilette (EDT)</option>
                   <option value="Extrait">Extrait de Parfum</option>
@@ -68,19 +89,19 @@
               </label>
             </div>
 
-            <div style="margin-top:20px; display:flex; justify-content:space-between; align-items:center;">
+            <div style="margin-top:25px; display:flex; justify-content:space-between; align-items:center;">
               <h3>COMPOSITION (mL)</h3>
               <button type="button" id="add-row-btn" class="btn small">+ ADD MATERIAL</button>
             </div>
             
             <div id="ingredient-rows-container" style="margin-top:10px;"></div>
             
-            <label style="margin-top:20px; display:block; cursor:pointer;">
+            <label style="margin-top:25px; display:block; cursor:pointer;">
               <input type="checkbox" id="public-checkbox" checked> SHARE IN PUBLIC FEED
             </label>
             
-            <button type="submit" class="btn" style="width:100%; margin-top:20px; font-size:1.1rem;">
-              SAVE TO LABORATORY
+            <button type="submit" class="btn" style="width:100%; margin-top:25px; font-size:1.1rem;">
+              SAVE FORMULA
             </button>
           </form>
         </div>
@@ -90,9 +111,9 @@
         <div class="panel">
           <h2>APP SETTINGS</h2>
           
-          <div style="margin: 25px 0; padding: 15px; border: 2px dashed var(--border);">
+          <div style="margin: 25px 0; padding: 20px; border: 2px dashed var(--border); border-radius: var(--radius);">
             <h3>DATA MANAGEMENT</h3>
-            <p style="font-size: 0.8rem; color: var(--muted); margin-bottom: 10px;">
+            <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 15px;">
               Download a backup of all your personal formulas as a text file.
             </p>
             <button class="btn" onclick="exportData()" style="width:100%;">
@@ -102,7 +123,7 @@
 
           <div style="margin-top:20px;">
             <h3>APPEARANCE</h3>
-            <label style="margin-top:10px; display:flex; align-items:center; gap:10px; cursor:pointer;">
+            <label style="margin-top:15px; display:flex; align-items:center; gap:12px; cursor:pointer;">
               <input type="checkbox" id="theme-toggle"> ENABLE DARK MODE (GOLD EDITION)
             </label>
           </div>
