@@ -31,7 +31,7 @@ const ACCORDS = [
   { val: 'Earthy', icon: '🌱' }
 ];
 
-// --- 1. DATA FETCHING (Wait for Auth) ---
+// --- 1. CALCULATIONS & CACHE ---
 
 async function loadInventoryCache() {
     if (!auth.currentUser) return;
@@ -41,20 +41,68 @@ async function loadInventoryCache() {
         inventoryCache = {};
         snap.forEach(d => {
             const item = d.data();
-            if (item.price && item.size) inventoryCache[item.name.toLowerCase()] = item.price / item.size;
+            if (item.price && item.size) {
+                inventoryCache[item.name.toLowerCase().trim()] = parseFloat(item.price) / parseFloat(item.size);
+            }
         });
         renderInventoryList(snap);
-    } catch (e) { console.warn("Inventory fetch delayed"); }
+    } catch (e) { console.warn("Inventory sync pending..."); }
 }
+
+function calculateBatchCost(composition, multiplier = 1) {
+    let total = 0;
+    composition.forEach(ing => {
+        const costPerMl = inventoryCache[ing.name.toLowerCase().trim()] || 0;
+        total += (costPerMl * parseFloat(ing.ml)) * multiplier;
+    });
+    return total.toFixed(2);
+}
+
+// --- 2. GLOBAL WINDOW FUNCTIONS (For HTML Buttons/Sliders) ---
+
+window.updateBatchScale = (id, baseJson, mult) => {
+    const base = JSON.parse(decodeURIComponent(baseJson));
+    const multiplier = parseFloat(mult);
+    
+    base.forEach((n, i) => {
+        const el = document.getElementById(`ml-${id}-${i}`);
+        if (el) el.innerText = (parseFloat(n.ml) * multiplier).toFixed(2) + 'mL';
+    });
+    
+    const newCost = calculateBatchCost(base, multiplier);
+    const costDisplay = document.getElementById(`cost-${id}`);
+    if (costDisplay) costDisplay.innerText = `Batch Cost: $${newCost}`;
+};
+
+window.deleteDocById = async (id) => {
+    if (confirm("Delete this formula?")) {
+        await deleteDoc(doc(db, "formulas", id));
+        loadFeed('my');
+    }
+};
+
+window.setActivePage = (pageId) => {
+    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    const target = document.getElementById('page-' + pageId);
+    if (target) target.style.display = 'block';
+    
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('drawer-overlay').classList.remove('show');
+
+    if (pageId === 'home') loadFeed('home');
+    if (pageId === 'my') loadFeed('my');
+    if (pageId === 'inventory') loadInventoryCache();
+};
+
+// --- 3. FEED & UI RENDERING ---
 
 async function loadFeed(type) {
     const container = document.getElementById(type === 'home' ? 'cards' : 'my-cards');
     if (!container) return;
-    container.innerHTML = '<p style="padding:20px; text-align:center;">Syncing Lab...</p>';
+    container.innerHTML = '<p style="padding:20px; text-align:center;">Updating Lab...</p>';
 
-    // Safety: If checking "My Notebook" but not logged in, stop here.
     if (type === 'my' && !auth.currentUser) {
-        container.innerHTML = '<p style="padding:20px; text-align:center;">Please Sign In to view your Notebook.</p>';
+        container.innerHTML = '<p style="padding:20px; text-align:center;">Sign in to view your Notebook.</p>';
         return;
     }
 
@@ -66,11 +114,6 @@ async function loadFeed(type) {
         
         const snap = await getDocs(q);
         container.innerHTML = '';
-        
-        if (snap.empty) {
-            container.innerHTML = `<p style="padding:20px; text-align:center;">No formulas found in ${type === 'home' ? 'Public Feed' : 'your Notebook'}.</p>`;
-            return;
-        }
 
         snap.forEach(d => {
             const data = d.data();
@@ -78,7 +121,6 @@ async function loadFeed(type) {
             const cost = calculateBatchCost(comp);
             const compJson = encodeURIComponent(JSON.stringify(comp));
 
-            // UI Building
             const colors = { Citrus: '#fbbf24', Floral: '#f472b6', Woody: '#78350f', Fresh: '#22d3ee', Sweet: '#f59e0b', Spicy: '#ef4444', Gourmand: '#92400e', Animalic: '#4b5563', Ozonic: '#7dd3fc', Green: '#16a34a', Resinous: '#d97706', Fruity: '#fb7185', Earthy: '#451a03' };
             let totalMl = 0;
             const totals = {};
@@ -95,85 +137,29 @@ async function loadFeed(type) {
                     <div style="font-size:0.85rem; margin-bottom:10px;">
                         ${comp.map((c, i) => `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #f9f9f9;"><span>${c.name}</span><b id="ml-${d.id}-${i}">${c.ml}mL</b></div>`).join('')}
                     </div>
-                    <div id="cost-${d.id}" style="font-weight:bold; font-size:0.8rem; color:#16a34a; margin-bottom:10px;">Cost: $${cost}</div>
-                    <input type="range" min="1" max="10" value="1" style="width:100%" oninput="updateBatchScale('${d.id}', '${compJson}', this.value)">
-                    ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" style="margin-top:10px; border:none; background:none; color:red; font-size:0.7rem; cursor:pointer;">DELETE</button>` : ''}
+                    <div id="cost-${d.id}" style="font-weight:bold; font-size:0.8rem; color:#16a34a; margin-bottom:10px;">Batch Cost: $${cost}</div>
+                    <input type="range" min="1" max="10" value="1" step="0.5" style="width:100%" oninput="updateBatchScale('${d.id}', '${compJson}', this.value)">
+                    ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" style="margin-top:15px; border:none; background:none; color:#ef4444; font-size:0.7rem; cursor:pointer;">DELETE FORMULA</button>` : ''}
                 </div>`);
         });
-    } catch (e) { 
-        container.innerHTML = '<p style="padding:20px; text-align:center; color:red;">Authentication Sync Error. Try clicking Feed again.</p>'; 
-    }
+    } catch (e) { container.innerHTML = '<p style="text-align:center; color:red;">Feed Error.</p>'; }
 }
 
-// --- 2. AUTHENTICATION (The Fix) ---
-
-onAuthStateChanged(auth, (user) => {
-    const signBtn = document.getElementById('sign-in-btn');
-    const userInfo = document.getElementById('user-info');
-    const userAvatar = document.getElementById('user-avatar');
-    const brandSpan = document.querySelector('.brand span');
-
-    if (user) {
-        signBtn.style.display = 'none';
-        userInfo.style.display = 'flex';
-        if (userAvatar) userAvatar.src = user.photoURL || '';
-        if (brandSpan) brandSpan.innerText = user.displayName ? user.displayName.toUpperCase() : "MY LAB";
-        
-        // Only load the feed once the user is definitely logged in
-        loadFeed('home'); 
-    } else {
-        signBtn.style.display = 'block';
-        userInfo.style.display = 'none';
-        if (brandSpan) brandSpan.innerText = "FRAGRANCE LAB";
-        loadFeed('home');
-    }
-});
-
-// --- 3. GLOBAL HELPERS ---
-
-function calculateBatchCost(composition, multiplier = 1) {
-    let total = 0;
-    composition.forEach(ing => {
-        const costPerMl = inventoryCache[ing.name.toLowerCase()] || 0;
-        total += (costPerMl * parseFloat(ing.ml)) * multiplier;
+function renderInventoryList(snap) {
+    const list = document.getElementById('inventory-list');
+    if (!list) return;
+    list.innerHTML = '';
+    snap.forEach(d => {
+        const item = d.data();
+        list.insertAdjacentHTML('beforeend', `
+            <div class="panel" style="margin:5px 0; padding:10px; display:flex; justify-content:space-between; font-size:0.9rem;">
+                <span><b>${item.name}</b></span>
+                <span>${item.qty}mL ($${(item.price/item.size).toFixed(2)}/mL)</span>
+            </div>`);
     });
-    return total.toFixed(2);
 }
 
-window.updateBatchScale = (id, baseJson, mult) => {
-    const base = JSON.parse(decodeURIComponent(baseJson));
-    base.forEach((n, i) => {
-        const el = document.getElementById(`ml-${id}-${i}`);
-        if (el) el.innerText = (parseFloat(n.ml) * mult).toFixed(2) + 'mL';
-    });
-    const newCost = calculateBatchCost(base, mult);
-    document.getElementById(`cost-${id}`).innerText = `Cost: $${newCost}`;
-};
-
-window.setActivePage = (pageId) => {
-    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    const target = document.getElementById('page-' + pageId);
-    if (target) target.style.display = 'block';
-    
-    document.getElementById('drawer').classList.remove('open');
-    document.getElementById('drawer-overlay').classList.remove('show');
-
-    if (pageId === 'home') loadFeed('home');
-    if (pageId === 'my') loadFeed('my');
-};
-
-window.deleteDocById = async (id) => {
-    if (confirm("Delete this formula?")) { await deleteDoc(doc(db, "formulas", id)); loadFeed('my'); }
-};
-
-// UI Listeners
-document.getElementById('menu-btn').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('show'); };
-document.getElementById('drawer-overlay').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('show'); };
-document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () => setActivePage(item.dataset.page); });
-document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
-document.getElementById('sign-out-btn').onclick = () => signOut(auth);
-
-// --- 4. INVENTORY & CREATE LOGIC ---
+// --- 4. CREATE PAGE LOGIC ---
 
 function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' }) {
     const container = document.getElementById('ingredient-rows-container');
@@ -192,25 +178,62 @@ function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' })
     container.appendChild(div);
 }
 
-// Handle Inventory Form Submit
-const invForm = document.getElementById('inventory-form');
-if (invForm) {
-    invForm.onsubmit = async (e) => {
-        e.preventDefault();
-        const data = {
-            name: document.getElementById('inv-name').value.trim(),
-            qty: parseFloat(document.getElementById('inv-qty').value),
-            price: parseFloat(document.getElementById('inv-price').value),
-            size: parseFloat(document.getElementById('inv-size').value),
-            uid: auth.currentUser.uid,
-            createdAt: serverTimestamp()
-        };
-        await addDoc(collection(db, "inventory"), data);
-        invForm.reset();
-        await loadInventoryCache(); 
-    };
-}
+// --- 5. AUTH & EVENT LISTENERS ---
 
-// Initialize first row for Formula Creator
+onAuthStateChanged(auth, (user) => {
+    const brandSpan = document.querySelector('.brand span');
+    document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
+    document.getElementById('user-info').style.display = user ? 'flex' : 'none';
+    
+    if (user) {
+        if (brandSpan) brandSpan.innerText = user.displayName.toUpperCase();
+        if (document.getElementById('user-avatar')) document.getElementById('user-avatar').src = user.photoURL;
+    } else {
+        if (brandSpan) brandSpan.innerText = "FRAGRANCE LAB";
+    }
+    setActivePage('home');
+});
+
+document.getElementById('formula-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const rows = document.querySelectorAll('.ingredient-row');
+    const composition = Array.from(rows).map(r => ({
+        type: r.querySelector('.ing-type').value,
+        name: r.querySelector('.ing-name').value.trim(),
+        ml: r.querySelector('.ing-ml').value,
+        category: r.querySelector('.ing-cat').value
+    }));
+    await addDoc(collection(db, "formulas"), {
+        name: document.getElementById('name').value,
+        concentration: document.getElementById('concentration-input').value,
+        composition,
+        uid: auth.currentUser.uid,
+        public: document.getElementById('public-checkbox').checked,
+        createdAt: serverTimestamp()
+    });
+    setActivePage('my');
+};
+
+document.getElementById('inventory-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const data = {
+        name: document.getElementById('inv-name').value.trim(),
+        qty: parseFloat(document.getElementById('inv-qty').value),
+        price: parseFloat(document.getElementById('inv-price').value),
+        size: parseFloat(document.getElementById('inv-size').value),
+        uid: auth.currentUser.uid
+    };
+    await addDoc(collection(db, "inventory"), data);
+    document.getElementById('inventory-form').reset();
+    loadInventoryCache();
+};
+
 document.getElementById('add-row-btn').onclick = () => createRow();
-createRow(); 
+document.getElementById('menu-btn').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('show'); };
+document.getElementById('drawer-overlay').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('show'); };
+document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () => setActivePage(item.dataset.page); });
+document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
+document.getElementById('sign-out-btn').onclick = () => signOut(auth);
+
+// Initial State
+createRow();
