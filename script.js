@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -16,63 +16,102 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// --- Fix Dark Mode ---
+// --- Theme Management ---
 const applyTheme = (isDark) => {
-    document.body.classList.toggle('dark', isDark);
-    localStorage.setItem('prefTheme', isDark ? 'dark' : 'light');
+  document.body.classList.toggle('dark', isDark);
+  localStorage.setItem('prefTheme', isDark ? 'dark' : 'light');
 };
 
-// --- Navigation ---
+// --- Navigation (Fixed for Stickiness) ---
 window.setActivePage = (pageId) => {
-    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    const target = document.getElementById('page-' + pageId);
-    if (target) target.style.display = 'block';
-    
-    document.getElementById('drawer').classList.remove('open');
-    document.getElementById('drawer-overlay').classList.remove('show');
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  const target = document.getElementById('page-' + pageId);
+  if (target) target.style.display = 'block';
+  
+  // Close menu properly
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('show');
 
-    if (pageId === 'home') loadFeed('home');
-    if (pageId === 'my') loadFeed('my');
+  if (pageId === 'home') loadFeed('home');
+  if (pageId === 'my') {
+    if (auth.currentUser) loadFeed('my');
+    else alert("Please sign in to view your notebook!");
+  }
 };
 
-// --- Safety Load ---
+// --- Loading Logic (Safety First) ---
 async function loadFeed(type) {
-    const container = document.getElementById(type === 'home' ? 'cards' : 'my-cards');
-    if (!container) return;
-    container.innerHTML = 'Loading...';
+  const container = document.getElementById(type === 'home' ? 'cards' : 'my-cards');
+  if (!container) return;
+  container.innerHTML = '<p style="padding:20px; text-align:center;">Scanning the lab...</p>';
 
-    try {
-        const q = query(collection(db, "formulas"));
-        const snap = await getDocs(q);
-        container.innerHTML = '';
-        snap.forEach(doc => {
-            const data = doc.data();
-            // Basic card for testing to ensure no blank screen
-            container.insertAdjacentHTML('beforeend', `
-                <div class="panel">
-                    <h3>${data.name || 'Untitled'}</h3>
-                    <p>${data.concentration || 'EDP'}</p>
-                </div>
-            `);
-        });
-    } catch (e) {
-        container.innerHTML = 'Error loading formulas. Please sign in again.';
+  try {
+    let q;
+    if (type === 'home') {
+       q = query(collection(db, "formulas"), where("public", "==", true));
+    } else {
+       q = query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid));
     }
+    
+    const snap = await getDocs(q);
+    container.innerHTML = '';
+    
+    if (snap.empty) {
+      container.innerHTML = '<p style="padding:20px; text-align:center;">No formulas found.</p>';
+      return;
+    }
+
+    snap.forEach(doc => {
+      const data = doc.data();
+      container.insertAdjacentHTML('beforeend', `
+        <div class="panel">
+          <h3>${data.name || 'Untitled'}</h3>
+          <p style="color:var(--muted)">${data.concentration || 'EDP'}</p>
+        </div>
+      `);
+    });
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = `<p style="padding:20px; color:red;">Connection error. Try refreshing.</p>`;
+  }
 }
 
-// --- Startup ---
-onAuthStateChanged(auth, user => {
-    const savedTheme = localStorage.getItem('prefTheme');
-    applyTheme(savedTheme === 'dark');
-    
-    document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
-    document.getElementById('user-info').style.display = user ? 'flex' : 'none';
-    
-    setActivePage('home');
+// --- Auth State ---
+onAuthStateChanged(auth, (user) => {
+  const savedTheme = localStorage.getItem('prefTheme');
+  applyTheme(savedTheme === 'dark');
+  
+  document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
+  document.getElementById('user-info').style.display = user ? 'flex' : 'none';
+  if (user && document.getElementById('user-avatar')) {
+    document.getElementById('user-avatar').src = user.photoURL;
+  }
+  
+  setActivePage('home');
 });
 
-// UI Listeners
+// --- UI Event Listeners ---
 document.getElementById('menu-btn').onclick = () => {
-    document.getElementById('drawer').classList.add('open');
-    document.getElementById('drawer-overlay').classList.add('show');
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('show');
 };
+
+document.getElementById('drawer-close').onclick = () => {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('show');
+};
+
+document.getElementById('drawer-overlay').onclick = () => {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawer-overlay').classList.remove('show');
+};
+
+document.querySelectorAll('.drawer-item').forEach(item => {
+  item.onclick = () => setActivePage(item.dataset.page);
+});
+
+document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
+document.getElementById('sign-out-btn').onclick = () => signOut(auth);
+if(document.getElementById('theme-toggle')) {
+    document.getElementById('theme-toggle').onchange = (e) => applyTheme(e.target.checked);
+}
