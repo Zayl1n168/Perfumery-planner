@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
 import { 
     getFirestore, collection, addDoc, query, where, getDocs, 
-    serverTimestamp, doc, updateDoc, getDoc 
+    serverTimestamp, deleteDoc, doc 
 } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 import { 
     getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut 
@@ -21,8 +21,6 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-let editModeId = null;
-
 const ACCORDS = [
   { val: 'Citrus', icon: '🍋' }, { val: 'Floral', icon: '🌸' }, { val: 'Woody', icon: '🪵' },
   { val: 'Fresh', icon: '🌊' }, { val: 'Sweet', icon: '🍯' }, { val: 'Spicy', icon: '🌶️' },
@@ -31,7 +29,67 @@ const ACCORDS = [
   { val: 'Earthy', icon: '🌱' }
 ];
 
-// --- Navigation ---
+// --- 1. CORE FUNCTIONS (Defined first so they are available everywhere) ---
+
+async function loadFeed(type) {
+    const container = document.getElementById(type === 'home' ? 'cards' : 'my-cards');
+    if (!container) return;
+    container.innerHTML = '<p style="padding:20px; text-align:center;">Updating Lab...</p>';
+
+    try {
+        let q = query(collection(db, "formulas"), where("public", "==", true));
+        if (type === 'my' && auth.currentUser) {
+            q = query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid));
+        }
+        
+        const snap = await getDocs(q);
+        container.innerHTML = '';
+        
+        if (snap.empty) {
+            container.innerHTML = '<p style="padding:20px; text-align:center;">No formulas found.</p>';
+            return;
+        }
+
+        snap.forEach(d => {
+            const data = d.data();
+            const comp = data.composition || [];
+            
+            // Generate visualizer bar
+            const colors = { Citrus: '#fbbf24', Floral: '#f472b6', Woody: '#78350f', Fresh: '#22d3ee', Sweet: '#f59e0b', Spicy: '#ef4444', Gourmand: '#92400e', Animalic: '#4b5563', Ozonic: '#7dd3fc', Green: '#16a34a', Resinous: '#d97706', Fruity: '#fb7185', Earthy: '#451a03' };
+            let totalMl = 0;
+            const totals = {};
+            comp.forEach(c => { const ml = parseFloat(c.ml) || 0; totalMl += ml; totals[c.category] = (totals[c.category] || 0) + ml; });
+            
+            let barHtml = '<div style="display:flex; height:8px; border-radius:4px; overflow:hidden; margin:10px 0; background:#eee;">';
+            for (const cat in totals) { barHtml += `<div style="width:${(totals[cat]/totalMl)*100}%; background:${colors[cat] || '#888'}"></div>`; }
+            barHtml += '</div>';
+
+            const card = `
+                <div class="panel">
+                    <h3 style="color:var(--brand-color)">${data.name}</h3>
+                    <p style="font-size:0.75rem; font-weight:bold; color:var(--muted);">${data.concentration}</p>
+                    ${totalMl > 0 ? barHtml : ''}
+                    <div style="font-size:0.85rem; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                        ${comp.map(c => `<div style="display:flex; justify-content:space-between;"><span>${c.name}</span><b>${c.ml}mL</b></div>`).join('')}
+                    </div>
+                    ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" style="margin-top:15px; background:none; border:none; color:#ef4444; font-size:0.7rem; cursor:pointer; font-weight:bold;">DELETE FORMULA</button>` : ''}
+                </div>`;
+            container.insertAdjacentHTML('beforeend', card);
+        });
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<p style="color:red; padding:20px;">Connection Error.</p>';
+    }
+}
+
+// Global Delete Function
+window.deleteDocById = async (id) => {
+    if (confirm("Delete this formula?")) {
+        await deleteDoc(doc(db, "formulas", id));
+        loadFeed('my');
+    }
+};
+
 window.setActivePage = (pageId) => {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
     const target = document.getElementById('page-' + pageId);
@@ -44,66 +102,8 @@ window.setActivePage = (pageId) => {
     if (pageId === 'my') loadFeed('my');
 };
 
-// --- Visualizer Logic ---
-function getVisualizerHtml(comp) {
-    const colors = { 
-        Citrus: '#fbbf24', Floral: '#f472b6', Woody: '#78350f', Fresh: '#22d3ee', 
-        Sweet: '#f59e0b', Spicy: '#ef4444', Gourmand: '#92400e', Animalic: '#4b5563',
-        Ozonic: '#7dd3fc', Green: '#16a34a', Resinous: '#d97706', Fruity: '#fb7185', Earthy: '#451a03'
-    };
-    let totalMl = 0;
-    const totals = {};
-    comp.forEach(c => {
-        const ml = parseFloat(c.ml) || 0;
-        totalMl += ml;
-        totals[c.category] = (totals[c.category] || 0) + ml;
-    });
-    if (totalMl === 0) return '';
-    let html = '<div class="scent-profile-bar" style="display:flex; height:10px; border-radius:5px; overflow:hidden; margin:10px 0; background:#eee;">';
-    for (const cat in totals) {
-        const width = (totals[cat] / totalMl) * 100;
-        html += `<div style="width:${width}%; background:${colors[cat] || '#888'}"></div>`;
-    }
-    return html + '</div>';
-}
+// --- 2. FORM & UI HELPERS ---
 
-// --- Card Rendering ---
-function createCard(d) {
-    const data = d.data();
-    const comp = data.composition || [];
-    return `
-        <div class="panel">
-            <h3 style="color:var(--brand-color)">${data.name}</h3>
-            <p style="font-size:0.8rem; font-weight:bold;">${data.concentration}</p>
-            ${getVisualizerHtml(comp)}
-            <div style="font-size:0.9rem; margin-top:10px;">
-                ${comp.map(c => `<div>${c.name}: ${c.ml}mL</div>`).join('')}
-            </div>
-        </div>`;
-}
-
-// --- Feed Loading ---
-async function loadFeed(type) {
-    const container = document.getElementById(type === 'home' ? 'cards' : 'my-cards');
-    if (!container) return;
-    container.innerHTML = '<p style="padding:20px;">Updating Lab...</p>';
-
-    try {
-        let q = query(collection(db, "formulas"), where("public", "==", true));
-        if (type === 'my' && auth.currentUser) {
-            q = query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid));
-        }
-        const snap = await getDocs(q);
-        container.innerHTML = '';
-        snap.forEach(doc => {
-            container.insertAdjacentHTML('beforeend', createCard(doc));
-        });
-    } catch (e) {
-        container.innerHTML = '<p style="color:red; padding:20px;">Sync Error. Sign in again.</p>';
-    }
-}
-
-// --- Form & Rows ---
 function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' }) {
     const container = document.getElementById('ingredient-rows-container');
     if (!container) return;
@@ -121,13 +121,8 @@ function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' })
     container.appendChild(div);
 }
 
-function resetForm() {
-    document.getElementById('formula-form').reset();
-    document.getElementById('ingredient-rows-container').innerHTML = '';
-    createRow();
-}
+// --- 3. EVENT LISTENERS ---
 
-// --- Global Actions ---
 document.getElementById('formula-form').onsubmit = async (e) => {
     e.preventDefault();
     const rows = document.querySelectorAll('.ingredient-row');
@@ -137,6 +132,7 @@ document.getElementById('formula-form').onsubmit = async (e) => {
         ml: r.querySelector('.ing-ml').value,
         category: r.querySelector('.ing-cat').value
     }));
+
     const formulaData = {
         name: document.getElementById('name').value,
         concentration: document.getElementById('concentration-input').value,
@@ -145,16 +141,21 @@ document.getElementById('formula-form').onsubmit = async (e) => {
         public: document.getElementById('public-checkbox').checked,
         createdAt: serverTimestamp()
     };
-    await addDoc(collection(db, "formulas"), formulaData);
-    setActivePage('my');
+
+    try {
+        await addDoc(collection(db, "formulas"), formulaData);
+        setActivePage('my'); // Now loadFeed('my') is defined above and will work
+    } catch (err) {
+        alert("Error: " + err.message);
+    }
 };
 
-// --- Listeners ---
 onAuthStateChanged(auth, user => {
     document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
     document.getElementById('user-info').style.display = user ? 'flex' : 'none';
     setActivePage('home');
 });
+
 document.getElementById('add-row-btn').onclick = () => createRow();
 document.getElementById('menu-btn').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('show'); };
 document.getElementById('drawer-overlay').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('show'); };
@@ -162,4 +163,5 @@ document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () =>
 document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('sign-out-btn').onclick = () => signOut(auth);
 
+// Initial setup
 createRow();
