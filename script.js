@@ -60,28 +60,26 @@ function calculateBatchCost(composition, multiplier = 1) {
     return total.toFixed(2);
 }
 
-// --- 2. GLOBAL WINDOW FUNCTIONS (Editing & Scaling) ---
+// --- 2. GLOBAL WINDOW FUNCTIONS ---
 
-window.updateVolumeScale = (id, baseJson, concentrationStr, targetVol) => {
+window.updateVolumeScale = (id, baseJson, originalBaseAmt, targetVol) => {
     const comp = JSON.parse(decodeURIComponent(baseJson));
     const target = parseFloat(targetVol);
-    const concentration = parseFloat(concentrationStr) / 100;
+    const origBase = parseFloat(originalBaseAmt);
     
     const originalOilTotal = comp.reduce((sum, ing) => sum + parseFloat(ing.ml), 0);
-    const newOilTotal = target * concentration;
-    const multiplier = newOilTotal / originalOilTotal;
+    const originalGrandTotal = originalOilTotal + origBase;
+    const multiplier = target / originalGrandTotal;
 
     comp.forEach((n, i) => {
         const el = document.getElementById(`ml-${id}-${i}`);
         if (el) el.innerText = (parseFloat(n.ml) * multiplier).toFixed(2) + 'mL';
     });
 
-    const baseAmount = (target - newOilTotal).toFixed(2);
-    document.getElementById(`base-${id}`).innerText = baseAmount + 'mL';
+    const newBase = (origBase * multiplier).toFixed(2);
+    document.getElementById(`base-${id}`).innerText = newBase + 'mL';
     document.getElementById(`yield-${id}`).innerText = target + 'mL';
-    
-    const newCost = calculateBatchCost(comp, multiplier);
-    document.getElementById(`cost-${id}`).innerText = `Batch Cost: $${newCost}`;
+    document.getElementById(`cost-${id}`).innerText = `Batch Cost: $${calculateBatchCost(comp, multiplier)}`;
 };
 
 window.editFormula = async (id) => {
@@ -91,7 +89,7 @@ window.editFormula = async (id) => {
         editFormulaId = id;
         setActivePage('create');
         document.getElementById('name').value = data.name;
-        document.getElementById('concentration-input').value = data.concentration;
+        document.getElementById('manual-base-input').value = data.baseAmount || 0;
         document.getElementById('public-checkbox').checked = data.public;
         document.getElementById('ingredient-rows-container').innerHTML = '';
         data.composition.forEach(item => createRow(item));
@@ -156,21 +154,21 @@ async function loadFeed(type) {
         snap.forEach(d => {
             const data = d.data();
             const comp = data.composition || [];
+            const manualBase = parseFloat(data.baseAmount || 0);
             const compJson = encodeURIComponent(JSON.stringify(comp));
             
             const oilTotal = comp.reduce((sum, ing) => sum + parseFloat(ing.ml), 0);
-            const concDecimal = parseFloat(data.concentration) / 100;
-            const initialTotalVol = (oilTotal / concDecimal).toFixed(1);
-            const initialBase = (initialTotalVol - oilTotal).toFixed(1);
+            const totalVol = oilTotal + manualBase;
+            const concentration = ((oilTotal / totalVol) * 100).toFixed(1);
 
             container.insertAdjacentHTML('beforeend', `
                 <div class="panel">
-                    <h3 style="color:var(--brand-color); margin-bottom:5px;">${data.name}</h3>
+                    <h3 style="margin:0;">${data.name} <small style="opacity:0.5;">${concentration}%</small></h3>
                     
                     <div style="margin:10px 0; font-size:0.8rem; background:rgba(0,0,0,0.03); padding:8px; border-radius:8px;">
-                        <div style="display:flex; justify-content:space-between;"><span>Concentrate:</span><b>${oilTotal.toFixed(2)}mL</b></div>
-                        <div style="display:flex; justify-content:space-between; color:var(--brand-color)"><span>Base Needed:</span><b id="base-${d.id}">${initialBase}mL</b></div>
-                        <div style="display:flex; justify-content:space-between; border-top:1px solid #ddd; margin-top:5px; font-weight:bold;"><span>Total Yield:</span><b id="yield-${d.id}">${initialTotalVol}mL</b></div>
+                        <div style="display:flex; justify-content:space-between;"><span>Oils:</span><b>${oilTotal.toFixed(2)}mL</b></div>
+                        <div style="display:flex; justify-content:space-between; color:#b45309"><span>Base:</span><b id="base-${d.id}">${manualBase.toFixed(2)}mL</b></div>
+                        <div style="display:flex; justify-content:space-between; border-top:1px solid #ddd; font-weight:bold;"><span>Yield:</span><b id="yield-${d.id}">${totalVol.toFixed(2)}mL</b></div>
                     </div>
 
                     <div style="font-size:0.8rem; margin-bottom:10px;">
@@ -179,13 +177,12 @@ async function loadFeed(type) {
 
                     <div id="cost-${d.id}" style="font-weight:bold; font-size:0.8rem; color:#16a34a; margin-bottom:10px;">Batch Cost: $${calculateBatchCost(comp)}</div>
                     
-                    <label style="font-size:0.65rem; font-weight:bold; letter-spacing:1px;">TARGET BOTTLE SIZE (mL)</label>
-                    <input type="range" min="5" max="100" value="${initialTotalVol}" step="5" style="width:100%; margin-bottom:10px;" 
-                        oninput="updateVolumeScale('${d.id}', '${compJson}', '${data.concentration}', this.value)">
+                    <input type="range" min="5" max="200" value="${totalVol}" step="1" style="width:100%; margin-bottom:10px;" 
+                        oninput="updateVolumeScale('${d.id}', '${compJson}', '${manualBase}', this.value)">
                     
                     <div style="display:flex; gap:10px;">
-                        ${type === 'my' ? `<button onclick="editFormula('${d.id}')" style="flex:1; background:#fbbf24; border:none; padding:8px; border-radius:8px; font-weight:bold;">EDIT</button>` : ''}
-                        ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" style="flex:1; background:#ef4444; color:white; border:none; padding:8px; border-radius:8px; font-weight:bold;">DEL</button>` : ''}
+                        ${type === 'my' ? `<button onclick="editFormula('${d.id}')" style="flex:1; background:#fbbf24; border:none; padding:8px; border-radius:8px;">EDIT</button>` : ''}
+                        ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" style="flex:1; background:#ef4444; color:white; border:none; padding:8px; border-radius:8px;">DEL</button>` : ''}
                     </div>
                 </div>`);
         });
@@ -200,7 +197,7 @@ function renderInventoryList(snap) {
         const item = d.data();
         list.insertAdjacentHTML('beforeend', `
             <div class="panel" style="margin:5px 0; padding:10px; display:flex; justify-content:space-between; align-items:center;">
-                <div><b>${item.name}</b><br><small>$${(item.price/item.size).toFixed(2)}/mL | ${item.qty}mL stock</small></div>
+                <div><b>${item.name}</b><br><small>$${(item.price/item.size).toFixed(2)}/mL</small></div>
                 <div style="display:flex; gap:5px;">
                     <button onclick="editInventory('${d.id}')" style="background:#fbbf24; border:none; padding:5px 8px; border-radius:5px;">Edit</button>
                     <button onclick="deleteInventory('${d.id}')" style="background:#ef4444; color:white; border:none; padding:5px 8px; border-radius:5px;">X</button>
@@ -240,7 +237,7 @@ document.getElementById('formula-form').onsubmit = async (e) => {
 
     const formulaData = {
         name: document.getElementById('name').value,
-        concentration: document.getElementById('concentration-input').value,
+        baseAmount: parseFloat(document.getElementById('manual-base-input').value || 0),
         composition,
         uid: auth.currentUser.uid,
         public: document.getElementById('public-checkbox').checked,
@@ -250,7 +247,6 @@ document.getElementById('formula-form').onsubmit = async (e) => {
     if (editFormulaId) {
         await updateDoc(doc(db, "formulas", editFormulaId), formulaData);
         editFormulaId = null;
-        document.querySelector('#page-create h2').innerText = "Create Formula";
     } else {
         await addDoc(collection(db, "formulas"), { ...formulaData, createdAt: serverTimestamp() });
     }
