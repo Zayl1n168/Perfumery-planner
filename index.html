@@ -42,9 +42,9 @@
             <form id="formula-form">
                 <input type="text" id="name" placeholder="Formula Name" required>
                 
-                <div style="background:#f0f0f0; padding:10px; border-radius:8px; margin-bottom:15px;">
-                    <label style="font-size:0.8rem; font-weight:bold;">Perfume Base / Alcohol (mL)</label>
-                    <input type="number" id="manual-base-input" step="0.1" placeholder="e.g. 8.0" required style="width:100%; margin-top:5px;">
+                <div class="base-input-box">
+                    <label>Perfume Base / Alcohol (mL)</label>
+                    <input type="number" id="manual-base-input" step="0.1" placeholder="e.g. 8.0" required>
                 </div>
 
                 <div id="ingredient-rows-container"></div>
@@ -61,7 +61,7 @@
             <h2>Stockroom</h2>
             <form id="inventory-form" class="panel">
                 <input type="text" id="inv-name" placeholder="Material Name" required>
-                <div style="display:flex; gap:5px;">
+                <div class="inv-grid">
                     <input type="number" id="inv-qty" placeholder="mL Stock" step="0.1" required>
                     <input type="number" id="inv-price" placeholder="$ Paid" step="0.01" required>
                     <input type="number" id="inv-size" placeholder="Bottle Size" step="0.1" required>
