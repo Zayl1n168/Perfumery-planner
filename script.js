@@ -22,6 +22,8 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 let inventoryCache = {}; 
+let editFormulaId = null; 
+let editInventoryId = null; 
 
 const ACCORDS = [
   { val: 'Citrus', icon: '🍋' }, { val: 'Floral', icon: '🌸' }, { val: 'Woody', icon: '🪵' },
@@ -31,7 +33,7 @@ const ACCORDS = [
   { val: 'Earthy', icon: '🌱' }
 ];
 
-// --- 1. CALCULATIONS & CACHE ---
+// --- 1. CORE CALCULATIONS ---
 
 async function loadInventoryCache() {
     if (!auth.currentUser) return;
@@ -46,7 +48,7 @@ async function loadInventoryCache() {
             }
         });
         renderInventoryList(snap);
-    } catch (e) { console.warn("Inventory sync pending..."); }
+    } catch (e) { console.warn("Syncing inventory..."); }
 }
 
 function calculateBatchCost(composition, multiplier = 1) {
@@ -58,20 +60,46 @@ function calculateBatchCost(composition, multiplier = 1) {
     return total.toFixed(2);
 }
 
-// --- 2. GLOBAL WINDOW FUNCTIONS (For HTML Buttons/Sliders) ---
+// --- 2. GLOBAL WINDOW FUNCTIONS ---
 
 window.updateBatchScale = (id, baseJson, mult) => {
     const base = JSON.parse(decodeURIComponent(baseJson));
     const multiplier = parseFloat(mult);
-    
     base.forEach((n, i) => {
         const el = document.getElementById(`ml-${id}-${i}`);
         if (el) el.innerText = (parseFloat(n.ml) * multiplier).toFixed(2) + 'mL';
     });
-    
     const newCost = calculateBatchCost(base, multiplier);
     const costDisplay = document.getElementById(`cost-${id}`);
     if (costDisplay) costDisplay.innerText = `Batch Cost: $${newCost}`;
+};
+
+window.editFormula = async (id) => {
+    const docSnap = await getDoc(doc(db, "formulas", id));
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        editFormulaId = id;
+        setActivePage('create');
+        document.getElementById('name').value = data.name;
+        document.getElementById('concentration-input').value = data.concentration;
+        document.getElementById('public-checkbox').checked = data.public;
+        document.getElementById('ingredient-rows-container').innerHTML = '';
+        data.composition.forEach(item => createRow(item));
+        document.querySelector('#page-create h2').innerText = "Edit Formula";
+    }
+};
+
+window.editInventory = async (id) => {
+    const docSnap = await getDoc(doc(db, "inventory", id));
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        editInventoryId = id;
+        document.getElementById('inv-name').value = data.name;
+        document.getElementById('inv-qty').value = data.qty;
+        document.getElementById('inv-price').value = data.price;
+        document.getElementById('inv-size').value = data.size;
+        document.querySelector('#inventory-form button').innerText = "Update Material";
+    }
 };
 
 window.deleteDocById = async (id) => {
@@ -81,30 +109,30 @@ window.deleteDocById = async (id) => {
     }
 };
 
+window.deleteInventory = async (id) => {
+    if (confirm("Remove this oil from stockroom?")) {
+        await deleteDoc(doc(db, "inventory", id));
+        loadInventoryCache();
+    }
+};
+
 window.setActivePage = (pageId) => {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
     const target = document.getElementById('page-' + pageId);
     if (target) target.style.display = 'block';
-    
     document.getElementById('drawer').classList.remove('open');
     document.getElementById('drawer-overlay').classList.remove('show');
-
     if (pageId === 'home') loadFeed('home');
     if (pageId === 'my') loadFeed('my');
     if (pageId === 'inventory') loadInventoryCache();
 };
 
-// --- 3. FEED & UI RENDERING ---
+// --- 3. UI RENDERING ---
 
 async function loadFeed(type) {
     const container = document.getElementById(type === 'home' ? 'cards' : 'my-cards');
     if (!container) return;
-    container.innerHTML = '<p style="padding:20px; text-align:center;">Updating Lab...</p>';
-
-    if (type === 'my' && !auth.currentUser) {
-        container.innerHTML = '<p style="padding:20px; text-align:center;">Sign in to view your Notebook.</p>';
-        return;
-    }
+    container.innerHTML = '<p style="padding:20px; text-align:center;">Updating...</p>';
 
     try {
         await loadInventoryCache();
@@ -121,28 +149,21 @@ async function loadFeed(type) {
             const cost = calculateBatchCost(comp);
             const compJson = encodeURIComponent(JSON.stringify(comp));
 
-            const colors = { Citrus: '#fbbf24', Floral: '#f472b6', Woody: '#78350f', Fresh: '#22d3ee', Sweet: '#f59e0b', Spicy: '#ef4444', Gourmand: '#92400e', Animalic: '#4b5563', Ozonic: '#7dd3fc', Green: '#16a34a', Resinous: '#d97706', Fruity: '#fb7185', Earthy: '#451a03' };
-            let totalMl = 0;
-            const totals = {};
-            comp.forEach(c => { const ml = parseFloat(c.ml) || 0; totalMl += ml; totals[c.category] = (totals[c.category] || 0) + ml; });
-
-            let barHtml = '<div style="display:flex; height:10px; border-radius:6px; overflow:hidden; margin:12px 0; background:#eee;">';
-            for (const cat in totals) { barHtml += `<div style="width:${(totals[cat]/totalMl)*100}%; background:${colors[cat] || '#888'}"></div>`; }
-            barHtml += '</div>';
-
             container.insertAdjacentHTML('beforeend', `
                 <div class="panel">
                     <h3 style="color:var(--brand-color)">${data.name}</h3>
-                    ${barHtml}
                     <div style="font-size:0.85rem; margin-bottom:10px;">
                         ${comp.map((c, i) => `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #f9f9f9;"><span>${c.name}</span><b id="ml-${d.id}-${i}">${c.ml}mL</b></div>`).join('')}
                     </div>
                     <div id="cost-${d.id}" style="font-weight:bold; font-size:0.8rem; color:#16a34a; margin-bottom:10px;">Batch Cost: $${cost}</div>
                     <input type="range" min="1" max="10" value="1" step="0.5" style="width:100%" oninput="updateBatchScale('${d.id}', '${compJson}', this.value)">
-                    ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" style="margin-top:15px; border:none; background:none; color:#ef4444; font-size:0.7rem; cursor:pointer;">DELETE FORMULA</button>` : ''}
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                        ${type === 'my' ? `<button onclick="editFormula('${d.id}')" style="flex:1; background:#fbbf24; border:none; padding:8px; border-radius:8px;">EDIT</button>` : ''}
+                        ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" style="flex:1; background:#ef4444; color:white; border:none; padding:8px; border-radius:8px;">DEL</button>` : ''}
+                    </div>
                 </div>`);
         });
-    } catch (e) { container.innerHTML = '<p style="text-align:center; color:red;">Feed Error.</p>'; }
+    } catch (e) { container.innerHTML = '<p>Error loading feed.</p>'; }
 }
 
 function renderInventoryList(snap) {
@@ -152,14 +173,15 @@ function renderInventoryList(snap) {
     snap.forEach(d => {
         const item = d.data();
         list.insertAdjacentHTML('beforeend', `
-            <div class="panel" style="margin:5px 0; padding:10px; display:flex; justify-content:space-between; font-size:0.9rem;">
-                <span><b>${item.name}</b></span>
-                <span>${item.qty}mL ($${(item.price/item.size).toFixed(2)}/mL)</span>
+            <div class="panel" style="margin:5px 0; padding:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div><b>${item.name}</b><br><small>${item.qty}mL ($${(item.price/item.size).toFixed(2)}/mL)</small></div>
+                <div>
+                    <button onclick="editInventory('${d.id}')" style="background:#fbbf24; border:none; padding:5px 10px; border-radius:5px; margin-right:5px;">Edit</button>
+                    <button onclick="deleteInventory('${d.id}')" style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:5px;">X</button>
+                </div>
             </div>`);
     });
 }
-
-// --- 4. CREATE PAGE LOGIC ---
 
 function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' }) {
     const container = document.getElementById('ingredient-rows-container');
@@ -168,31 +190,17 @@ function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' })
     div.className = 'ingredient-row';
     div.style = "display:flex; gap:5px; margin-bottom:8px;";
     div.innerHTML = `
-        <select class="ing-type" style="flex:1"><option value="Top">T</option><option value="Heart">H</option><option value="Base">B</option></select>
+        <select class="ing-type" style="flex:1"><option value="Top" ${data.type==='Top'?'selected':''}>T</option><option value="Heart" ${data.type==='Heart'?'selected':''}>H</option><option value="Base" ${data.type==='Base'?'selected':''}>B</option></select>
         <input type="text" placeholder="Material" class="ing-name" value="${data.name}" required style="flex:2">
         <input type="number" step="0.01" placeholder="mL" class="ing-ml" value="${data.ml}" required style="flex:1">
-        <select class="ing-cat" style="flex:1">${ACCORDS.map(a => `<option value="${a.val}">${a.icon}</option>`).join('')}</select>
+        <select class="ing-cat" style="flex:1">${ACCORDS.map(a => `<option value="${a.val}" ${data.category===a.val?'selected':''}>${a.icon}</option>`).join('')}</select>
         <button type="button" class="remove-row" style="background:#ff4d4d; color:white; border:none; border-radius:5px; width:30px;">×</button>
     `;
     div.querySelector('.remove-row').onclick = () => div.remove();
     container.appendChild(div);
 }
 
-// --- 5. AUTH & EVENT LISTENERS ---
-
-onAuthStateChanged(auth, (user) => {
-    const brandSpan = document.querySelector('.brand span');
-    document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
-    document.getElementById('user-info').style.display = user ? 'flex' : 'none';
-    
-    if (user) {
-        if (brandSpan) brandSpan.innerText = user.displayName.toUpperCase();
-        if (document.getElementById('user-avatar')) document.getElementById('user-avatar').src = user.photoURL;
-    } else {
-        if (brandSpan) brandSpan.innerText = "FRAGRANCE LAB";
-    }
-    setActivePage('home');
-});
+// --- 4. FORM SUBMITS ---
 
 document.getElementById('formula-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -203,14 +211,24 @@ document.getElementById('formula-form').onsubmit = async (e) => {
         ml: r.querySelector('.ing-ml').value,
         category: r.querySelector('.ing-cat').value
     }));
-    await addDoc(collection(db, "formulas"), {
+
+    const formulaData = {
         name: document.getElementById('name').value,
         concentration: document.getElementById('concentration-input').value,
         composition,
         uid: auth.currentUser.uid,
         public: document.getElementById('public-checkbox').checked,
-        createdAt: serverTimestamp()
-    });
+        updatedAt: serverTimestamp()
+    };
+
+    if (editFormulaId) {
+        await updateDoc(doc(db, "formulas", editFormulaId), formulaData);
+        editFormulaId = null;
+        document.querySelector('#page-create h2').innerText = "Create New Formula";
+    } else {
+        await addDoc(collection(db, "formulas"), { ...formulaData, createdAt: serverTimestamp() });
+    }
+    document.getElementById('formula-form').reset();
     setActivePage('my');
 };
 
@@ -223,10 +241,32 @@ document.getElementById('inventory-form').onsubmit = async (e) => {
         size: parseFloat(document.getElementById('inv-size').value),
         uid: auth.currentUser.uid
     };
-    await addDoc(collection(db, "inventory"), data);
+
+    if (editInventoryId) {
+        await updateDoc(doc(db, "inventory", editInventoryId), data);
+        editInventoryId = null;
+        document.querySelector('#inventory-form button').innerText = "Add to Stockroom";
+    } else {
+        await addDoc(collection(db, "inventory"), data);
+    }
     document.getElementById('inventory-form').reset();
     loadInventoryCache();
 };
+
+// --- 5. AUTH & INITIALIZATION ---
+
+onAuthStateChanged(auth, (user) => {
+    const brandSpan = document.querySelector('.brand span');
+    document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
+    document.getElementById('user-info').style.display = user ? 'flex' : 'none';
+    if (user) {
+        if (brandSpan) brandSpan.innerText = user.displayName.toUpperCase();
+        if (document.getElementById('user-avatar')) document.getElementById('user-avatar').src = user.photoURL;
+    } else {
+        if (brandSpan) brandSpan.innerText = "FRAGRANCE LAB";
+    }
+    setActivePage('home');
+});
 
 document.getElementById('add-row-btn').onclick = () => createRow();
 document.getElementById('menu-btn').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('show'); };
@@ -235,5 +275,4 @@ document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () =>
 document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
 document.getElementById('sign-out-btn').onclick = () => signOut(auth);
 
-// Initial State
 createRow();
