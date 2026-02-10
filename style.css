@@ -3,7 +3,9 @@
     --bg-color: #f8fafc;
     --panel-bg: #ffffff;
     --text-main: #1e293b;
-    --text-dim: #64748b;
+    --top-note: #fcd34d;
+    --heart-note: #f87171;
+    --base-note: #60a5fa;
 }
 
 body {
@@ -11,14 +13,15 @@ body {
     margin: 0;
     background-color: var(--bg-color);
     color: var(--text-main);
+    line-height: 1.5;
 }
 
-/* Navbar */
+/* Navbar & Drawer */
 .navbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 20px;
+    padding: 0 20px;
     background: #1e293b;
     color: white;
     height: 60px;
@@ -26,83 +29,52 @@ body {
     top: 0;
     z-index: 100;
 }
-
-#user-info { display: flex; align-items: center; gap: 10px; }
 #user-avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; }
-
-/* Navigation Drawer */
 #drawer {
-    position: fixed;
-    left: -280px;
-    top: 0;
-    width: 250px;
-    height: 100%;
-    background: white;
-    z-index: 1000;
-    transition: 0.3s;
-    padding: 20px;
+    position: fixed; left: -280px; top: 0; width: 250px; height: 100%;
+    background: white; z-index: 1000; transition: 0.3s; padding: 20px;
     box-shadow: 2px 0 10px rgba(0,0,0,0.1);
 }
 #drawer.open { left: 0; }
-.drawer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; cursor: pointer; font-weight: 500; }
 #drawer-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    display: none;
-    z-index: 999;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: none; z-index: 999;
 }
 #drawer-overlay.show { display: block; }
 
-/* Layout */
+/* Main UI */
 main { max-width: 600px; margin: 0 auto; padding: 20px; }
-.panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; }
-h2 { font-size: 1.5rem; margin-bottom: 20px; }
+.panel { 
+    background: white; padding: 20px; border-radius: 12px; 
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; 
+}
 
-/* Forms */
+/* Scent Family Bar */
+.scent-bar-container { margin: 15px 0; }
+.scent-bar {
+    display: flex; height: 12px; border-radius: 6px; overflow: hidden;
+    background: #e2e8f0; margin-bottom: 5px;
+}
+.bar-segment { transition: width 0.3s ease; }
+.bar-labels { display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: bold; }
+.label-top { color: #b45309; }
+.label-heart { color: #b91c1c; }
+.label-base { color: #1d4ed8; }
+
+/* Form Elements */
 input, select {
-    width: 100%;
-    padding: 12px;
-    margin: 8px 0;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-sizing: border-box;
-    font-size: 1rem;
+    width: 100%; padding: 12px; margin: 8px 0;
+    border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box;
 }
-
 .base-input-box {
-    background: #eff6ff;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    border: 1px dashed var(--brand-color);
+    background: #eff6ff; padding: 15px; border-radius: 10px;
+    margin-bottom: 20px; border: 1px dashed var(--brand-color);
 }
-
 .primary-btn {
-    background: var(--brand-color);
-    color: white;
-    border: none;
-    padding: 15px;
-    width: 100%;
-    border-radius: 8px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-top: 10px;
+    background: var(--brand-color); color: white; border: none;
+    padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer;
 }
-
 .secondary-btn {
-    background: #e2e8f0;
-    color: var(--text-main);
-    border: none;
-    padding: 10px;
-    width: 100%;
-    border-radius: 8px;
-    margin: 10px 0;
-    cursor: pointer;
+    background: #f1f5f9; color: var(--text-main); border: none;
+    padding: 10px; width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer;
 }
-
-/* Grid for Stockroom */
-.inv-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
-
-/* Sliders */
-input[type=range] { margin: 15px 0; accent-color: var(--brand-color); }
