@@ -26,11 +26,8 @@ let editFormulaId = null;
 let editInventoryId = null; 
 
 const ACCORDS = [
-  { val: 'Citrus', icon: '🍋' }, { val: 'Floral', icon: '🌸' }, { val: 'Woody', icon: '🪵' },
-  { val: 'Fresh', icon: '🌊' }, { val: 'Sweet', icon: '🍯' }, { val: 'Spicy', icon: '🌶️' },
-  { val: 'Gourmand', icon: '🧁' }, { val: 'Animalic', icon: '🐾' }, { val: 'Ozonic', icon: '💨' },
-  { val: 'Green', icon: '🌿' }, { val: 'Resinous', icon: '🔥' }, { val: 'Fruity', icon: '🍎' },
-  { val: 'Earthy', icon: '🌱' }
+  'Citrus', 'Floral', 'Woody', 'Fresh', 'Sweet', 'Spicy', 
+  'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy'
 ];
 
 // --- 1. CORE CALCULATIONS ---
@@ -48,7 +45,7 @@ async function loadInventoryCache() {
             }
         });
         renderInventoryList(snap);
-    } catch (e) { console.warn("Syncing..."); }
+    } catch (e) { console.warn("Syncing inventory..."); }
 }
 
 function calculateBatchCost(composition, multiplier = 1) {
@@ -58,6 +55,19 @@ function calculateBatchCost(composition, multiplier = 1) {
         total += (costPerMl * parseFloat(ing.ml)) * multiplier;
     });
     return total.toFixed(2);
+}
+
+function getScentProfile(comp) {
+    const total = comp.reduce((sum, ing) => sum + parseFloat(ing.ml || 0), 0) || 1;
+    const top = comp.filter(i => i.type === 'Top').reduce((s, i) => s + parseFloat(i.ml), 0);
+    const heart = comp.filter(i => i.type === 'Heart').reduce((s, i) => s + parseFloat(i.ml), 0);
+    const base = comp.filter(i => i.type === 'Base').reduce((s, i) => s + parseFloat(i.ml), 0);
+    
+    return {
+        t: (top / total) * 100,
+        h: (heart / total) * 100,
+        b: (base / total) * 100
+    };
 }
 
 // --- 2. GLOBAL WINDOW FUNCTIONS ---
@@ -140,7 +150,7 @@ window.setActivePage = (pageId) => {
 async function loadFeed(type) {
     const container = document.getElementById(type === 'home' ? 'cards' : 'my-cards');
     if (!container) return;
-    container.innerHTML = '<p style="padding:20px; text-align:center;">Updating...</p>';
+    container.innerHTML = '<p style="text-align:center; padding:20px;">Updating Lab...</p>';
 
     try {
         await loadInventoryCache();
@@ -154,6 +164,7 @@ async function loadFeed(type) {
         snap.forEach(d => {
             const data = d.data();
             const comp = data.composition || [];
+            const profile = getScentProfile(comp);
             const manualBase = parseFloat(data.baseAmount || 0);
             const compJson = encodeURIComponent(JSON.stringify(comp));
             
@@ -163,30 +174,51 @@ async function loadFeed(type) {
 
             container.insertAdjacentHTML('beforeend', `
                 <div class="panel">
-                    <h3 style="margin:0;">${data.name} <small style="opacity:0.5;">${concentration}%</small></h3>
-                    
-                    <div style="margin:10px 0; font-size:0.8rem; background:rgba(0,0,0,0.03); padding:8px; border-radius:8px;">
-                        <div style="display:flex; justify-content:space-between;"><span>Oils:</span><b>${oilTotal.toFixed(2)}mL</b></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin:0;">${data.name}</h3>
+                        <span style="font-size:0.75rem; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:12px; font-weight:bold;">${concentration}% Conc.</span>
+                    </div>
+
+                    <div class="scent-bar-container">
+                        <div class="scent-bar">
+                            <div class="bar-segment" style="width:${profile.t}%; background:var(--top-note)"></div>
+                            <div class="bar-segment" style="width:${profile.h}%; background:var(--heart-note)"></div>
+                            <div class="bar-segment" style="width:${profile.b}%; background:var(--base-note)"></div>
+                        </div>
+                        <div class="bar-labels">
+                            <span class="label-top">Top: ${profile.t.toFixed(0)}%</span>
+                            <span class="label-heart">Heart: ${profile.h.toFixed(0)}%</span>
+                            <span class="label-base">Base: ${profile.b.toFixed(0)}%</span>
+                        </div>
+                    </div>
+
+                    <div style="font-size:0.85rem; margin:10px 0; background:rgba(0,0,0,0.02); padding:10px; border-radius:8px;">
+                        <div style="display:flex; justify-content:space-between;"><span>Oils Total:</span><b>${oilTotal.toFixed(2)}mL</b></div>
                         <div style="display:flex; justify-content:space-between; color:#b45309"><span>Base:</span><b id="base-${d.id}">${manualBase.toFixed(2)}mL</b></div>
-                        <div style="display:flex; justify-content:space-between; border-top:1px solid #ddd; font-weight:bold;"><span>Yield:</span><b id="yield-${d.id}">${totalVol.toFixed(2)}mL</b></div>
+                        <div style="display:flex; justify-content:space-between; border-top:1px solid #ddd; margin-top:5px; font-weight:bold;"><span>Total Yield:</span><b id="yield-${d.id}">${totalVol.toFixed(2)}mL</b></div>
                     </div>
 
                     <div style="font-size:0.8rem; margin-bottom:10px;">
-                        ${comp.map((c, i) => `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee;"><span>${c.name}</span><b id="ml-${d.id}-${i}">${c.ml}mL</b></div>`).join('')}
+                        ${comp.map((c, i) => `
+                            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:4px 0;">
+                                <span>${c.name} <small style="color:#64748b">(${c.category})</small></span>
+                                <b id="ml-${d.id}-${i}">${c.ml}mL</b>
+                            </div>`).join('')}
                     </div>
 
                     <div id="cost-${d.id}" style="font-weight:bold; font-size:0.8rem; color:#16a34a; margin-bottom:10px;">Batch Cost: $${calculateBatchCost(comp)}</div>
                     
-                    <input type="range" min="5" max="200" value="${totalVol}" step="1" style="width:100%; margin-bottom:10px;" 
+                    <label style="font-size:0.65rem; font-weight:bold; letter-spacing:0.5px; display:block; margin-bottom:5px;">RESIZE BATCH (mL)</label>
+                    <input type="range" min="5" max="250" value="${totalVol}" step="1" style="width:100%;" 
                         oninput="updateVolumeScale('${d.id}', '${compJson}', '${manualBase}', this.value)">
                     
-                    <div style="display:flex; gap:10px;">
-                        ${type === 'my' ? `<button onclick="editFormula('${d.id}')" style="flex:1; background:#fbbf24; border:none; padding:8px; border-radius:8px;">EDIT</button>` : ''}
-                        ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" style="flex:1; background:#ef4444; color:white; border:none; padding:8px; border-radius:8px;">DEL</button>` : ''}
+                    <div style="display:flex; gap:10px; margin-top:15px;">
+                        ${type === 'my' ? `<button onclick="editFormula('${d.id}')" class="secondary-btn" style="margin:0; flex:1;">Edit</button>` : ''}
+                        ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" class="secondary-btn" style="margin:0; flex:1; background:#fee2e2; color:#b91c1c;">Delete</button>` : ''}
                     </div>
                 </div>`);
         });
-    } catch (e) { container.innerHTML = '<p>Error.</p>'; }
+    } catch (e) { console.error(e); }
 }
 
 function renderInventoryList(snap) {
@@ -196,11 +228,11 @@ function renderInventoryList(snap) {
     snap.forEach(d => {
         const item = d.data();
         list.insertAdjacentHTML('beforeend', `
-            <div class="panel" style="margin:5px 0; padding:10px; display:flex; justify-content:space-between; align-items:center;">
-                <div><b>${item.name}</b><br><small>$${(item.price/item.size).toFixed(2)}/mL</small></div>
-                <div style="display:flex; gap:5px;">
-                    <button onclick="editInventory('${d.id}')" style="background:#fbbf24; border:none; padding:5px 8px; border-radius:5px;">Edit</button>
-                    <button onclick="deleteInventory('${d.id}')" style="background:#ef4444; color:white; border:none; padding:5px 8px; border-radius:5px;">X</button>
+            <div class="panel" style="margin:5px 0; padding:12px; display:flex; justify-content:space-between; align-items:center;">
+                <div><b>${item.name}</b><br><small>$${(item.price/item.size).toFixed(2)}/mL | ${item.qty}mL stock</small></div>
+                <div style="display:flex; gap:8px;">
+                    <button onclick="editInventory('${d.id}')" style="background:#fbbf24; border:none; padding:6px 12px; border-radius:8px; cursor:pointer;">Edit</button>
+                    <button onclick="deleteInventory('${d.id}')" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:8px; cursor:pointer;">X</button>
                 </div>
             </div>`);
     });
@@ -213,13 +245,13 @@ function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' })
     if (!container) return;
     const div = document.createElement('div');
     div.className = 'ingredient-row';
-    div.style = "display:flex; gap:5px; margin-bottom:8px;";
+    div.style = "display:grid; grid-template-columns: 0.6fr 1.5fr 0.7fr 1.2fr 40px; gap:5px; margin-bottom:8px;";
     div.innerHTML = `
-        <select class="ing-type" style="flex:1"><option value="Top" ${data.type==='Top'?'selected':''}>T</option><option value="Heart" ${data.type==='Heart'?'selected':''}>H</option><option value="Base" ${data.type==='Base'?'selected':''}>B</option></select>
-        <input type="text" placeholder="Material" class="ing-name" value="${data.name}" required style="flex:2">
-        <input type="number" step="0.01" placeholder="mL" class="ing-ml" value="${data.ml}" required style="flex:1">
-        <select class="ing-cat" style="flex:1">${ACCORDS.map(a => `<option value="${a.val}" ${data.category===a.val?'selected':''}>${a.icon}</option>`).join('')}</select>
-        <button type="button" class="remove-row" style="background:#ff4d4d; color:white; border:none; border-radius:5px; width:30px;">×</button>
+        <select class="ing-type"><option value="Top" ${data.type==='Top'?'selected':''}>T</option><option value="Heart" ${data.type==='Heart'?'selected':''}>H</option><option value="Base" ${data.type==='Base'?'selected':''}>B</option></select>
+        <input type="text" placeholder="Material" class="ing-name" value="${data.name}" required>
+        <input type="number" step="0.01" placeholder="mL" class="ing-ml" value="${data.ml}" required>
+        <select class="ing-cat">${ACCORDS.map(a => `<option value="${a}" ${data.category===a?'selected':''}>${a}</option>`).join('')}</select>
+        <button type="button" class="remove-row" style="background:#ef4444; color:white; border:none; border-radius:8px;">×</button>
     `;
     div.querySelector('.remove-row').onclick = () => div.remove();
     container.appendChild(div);
@@ -247,6 +279,7 @@ document.getElementById('formula-form').onsubmit = async (e) => {
     if (editFormulaId) {
         await updateDoc(doc(db, "formulas", editFormulaId), formulaData);
         editFormulaId = null;
+        document.querySelector('#page-create h2').innerText = "New Formula";
     } else {
         await addDoc(collection(db, "formulas"), { ...formulaData, createdAt: serverTimestamp() });
     }
