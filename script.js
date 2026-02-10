@@ -27,7 +27,7 @@ let editInventoryId = null;
 
 const ACCORDS = [
   'Citrus', 'Floral', 'Woody', 'Fresh', 'Sweet', 'Spicy', 
-  'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy'
+  'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy', 'Smokey'
 ];
 
 // --- 1. CORE CALCULATIONS ---
