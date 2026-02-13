@@ -27,10 +27,10 @@ let editInventoryId = null;
 
 const ACCORDS = [
   'Citrus', 'Floral', 'Woody', 'Fresh', 'Sweet', 'Spicy', 
-  'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy', 'Smokey'
+  'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy'
 ];
 
-// --- 1. CORE CALCULATIONS ---
+// --- 1. CORE LOGIC & CALCULATIONS ---
 
 async function loadInventoryCache() {
     if (!auth.currentUser) return;
@@ -45,7 +45,7 @@ async function loadInventoryCache() {
             }
         });
         renderInventoryList(snap);
-    } catch (e) { console.warn("Syncing inventory..."); }
+    } catch (e) { console.warn("Syncing..."); }
 }
 
 function calculateBatchCost(composition, multiplier = 1) {
@@ -62,32 +62,29 @@ function getScentProfile(comp) {
     const top = comp.filter(i => i.type === 'Top').reduce((s, i) => s + parseFloat(i.ml), 0);
     const heart = comp.filter(i => i.type === 'Heart').reduce((s, i) => s + parseFloat(i.ml), 0);
     const base = comp.filter(i => i.type === 'Base').reduce((s, i) => s + parseFloat(i.ml), 0);
-    
-    return {
-        t: (top / total) * 100,
-        h: (heart / total) * 100,
-        b: (base / total) * 100
-    };
+    return { t: (top / total) * 100, h: (heart / total) * 100, b: (base / total) * 100 };
 }
 
 // --- 2. GLOBAL WINDOW FUNCTIONS ---
+
+window.toggleInspiredField = () => {
+    const type = document.getElementById('creation-type').value;
+    document.getElementById('inspired-box').style.display = type === 'Inspired' ? 'block' : 'none';
+};
 
 window.updateVolumeScale = (id, baseJson, originalBaseAmt, targetVol) => {
     const comp = JSON.parse(decodeURIComponent(baseJson));
     const target = parseFloat(targetVol);
     const origBase = parseFloat(originalBaseAmt);
-    
     const originalOilTotal = comp.reduce((sum, ing) => sum + parseFloat(ing.ml), 0);
-    const originalGrandTotal = originalOilTotal + origBase;
-    const multiplier = target / originalGrandTotal;
+    const multiplier = target / (originalOilTotal + origBase);
 
     comp.forEach((n, i) => {
         const el = document.getElementById(`ml-${id}-${i}`);
         if (el) el.innerText = (parseFloat(n.ml) * multiplier).toFixed(2) + 'mL';
     });
 
-    const newBase = (origBase * multiplier).toFixed(2);
-    document.getElementById(`base-${id}`).innerText = newBase + 'mL';
+    document.getElementById(`base-${id}`).innerText = (origBase * multiplier).toFixed(2) + 'mL';
     document.getElementById(`yield-${id}`).innerText = target + 'mL';
     document.getElementById(`cost-${id}`).innerText = `Batch Cost: $${calculateBatchCost(comp, multiplier)}`;
 };
@@ -100,6 +97,9 @@ window.editFormula = async (id) => {
         setActivePage('create');
         document.getElementById('name').value = data.name;
         document.getElementById('manual-base-input').value = data.baseAmount || 0;
+        document.getElementById('creation-type').value = data.creationType || 'Original';
+        document.getElementById('inspired-name').value = data.inspiredName || '';
+        toggleInspiredField();
         document.getElementById('public-checkbox').checked = data.public;
         document.getElementById('ingredient-rows-container').innerHTML = '';
         data.composition.forEach(item => createRow(item));
@@ -136,8 +136,7 @@ window.deleteInventory = async (id) => {
 
 window.setActivePage = (pageId) => {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    const target = document.getElementById('page-' + pageId);
-    if (target) target.style.display = 'block';
+    document.getElementById('page-' + pageId).style.display = 'block';
     document.getElementById('drawer').classList.remove('open');
     document.getElementById('drawer-overlay').classList.remove('show');
     if (pageId === 'home') loadFeed('home');
@@ -167,17 +166,21 @@ async function loadFeed(type) {
             const profile = getScentProfile(comp);
             const manualBase = parseFloat(data.baseAmount || 0);
             const compJson = encodeURIComponent(JSON.stringify(comp));
-            
             const oilTotal = comp.reduce((sum, ing) => sum + parseFloat(ing.ml), 0);
             const totalVol = oilTotal + manualBase;
             const concentration = ((oilTotal / totalVol) * 100).toFixed(1);
+
+            const typeTag = data.creationType === 'Inspired' 
+                ? `<div style="font-size:0.75rem; color:#6366f1; font-weight:bold; margin-top:-5px; margin-bottom:10px;">✨ Inspired by: ${data.inspiredName}</div>`
+                : `<div style="font-size:0.75rem; color:#10b981; font-weight:bold; margin-top:-5px; margin-bottom:10px;">🌿 Original Creation</div>`;
 
             container.insertAdjacentHTML('beforeend', `
                 <div class="panel">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <h3 style="margin:0;">${data.name}</h3>
-                        <span style="font-size:0.75rem; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:12px; font-weight:bold;">${concentration}% Conc.</span>
+                        <span style="font-size:0.7rem; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:12px;">${concentration}% Conc.</span>
                     </div>
+                    ${typeTag}
 
                     <div class="scent-bar-container">
                         <div class="scent-bar">
@@ -192,23 +195,24 @@ async function loadFeed(type) {
                         </div>
                     </div>
 
-                    <div style="font-size:0.85rem; margin:10px 0; background:rgba(0,0,0,0.02); padding:10px; border-radius:8px;">
-                        <div style="display:flex; justify-content:space-between;"><span>Oils Total:</span><b>${oilTotal.toFixed(2)}mL</b></div>
-                        <div style="display:flex; justify-content:space-between; color:#b45309"><span>Base:</span><b id="base-${d.id}">${manualBase.toFixed(2)}mL</b></div>
-                        <div style="display:flex; justify-content:space-between; border-top:1px solid #ddd; margin-top:5px; font-weight:bold;"><span>Total Yield:</span><b id="yield-${d.id}">${totalVol.toFixed(2)}mL</b></div>
-                    </div>
-
                     <div style="font-size:0.8rem; margin-bottom:10px;">
                         ${comp.map((c, i) => `
                             <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:4px 0;">
                                 <span>${c.name} <small style="color:#64748b">(${c.category})</small></span>
                                 <b id="ml-${d.id}-${i}">${c.ml}mL</b>
                             </div>`).join('')}
+                        <div style="display:flex; justify-content:space-between; padding:4px 0; color:#b45309; font-weight:bold;">
+                            <span>Perfume Base</span>
+                            <b id="base-${d.id}">${manualBase.toFixed(2)}mL</b>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; border-top:1px solid #ddd; margin-top:5px; font-weight:bold;">
+                            <span>Total Yield</span>
+                            <b id="yield-${d.id}">${totalVol.toFixed(2)}mL</b>
+                        </div>
                     </div>
 
                     <div id="cost-${d.id}" style="font-weight:bold; font-size:0.8rem; color:#16a34a; margin-bottom:10px;">Batch Cost: $${calculateBatchCost(comp)}</div>
                     
-                    <label style="font-size:0.65rem; font-weight:bold; letter-spacing:0.5px; display:block; margin-bottom:5px;">RESIZE BATCH (mL)</label>
                     <input type="range" min="5" max="250" value="${totalVol}" step="1" style="width:100%;" 
                         oninput="updateVolumeScale('${d.id}', '${compJson}', '${manualBase}', this.value)">
                     
@@ -229,10 +233,10 @@ function renderInventoryList(snap) {
         const item = d.data();
         list.insertAdjacentHTML('beforeend', `
             <div class="panel" style="margin:5px 0; padding:12px; display:flex; justify-content:space-between; align-items:center;">
-                <div><b>${item.name}</b><br><small>$${(item.price/item.size).toFixed(2)}/mL | ${item.qty}mL stock</small></div>
+                <div><b>${item.name}</b><br><small>$${(item.price/item.size).toFixed(2)}/mL</small></div>
                 <div style="display:flex; gap:8px;">
-                    <button onclick="editInventory('${d.id}')" style="background:#fbbf24; border:none; padding:6px 12px; border-radius:8px; cursor:pointer;">Edit</button>
-                    <button onclick="deleteInventory('${d.id}')" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:8px; cursor:pointer;">X</button>
+                    <button onclick="editInventory('${d.id}')" style="background:#fbbf24; border:none; padding:6px 12px; border-radius:8px;">Edit</button>
+                    <button onclick="deleteInventory('${d.id}')" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:8px;">X</button>
                 </div>
             </div>`);
     });
@@ -242,7 +246,6 @@ function renderInventoryList(snap) {
 
 function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' }) {
     const container = document.getElementById('ingredient-rows-container');
-    if (!container) return;
     const div = document.createElement('div');
     div.className = 'ingredient-row';
     div.style = "display:grid; grid-template-columns: 0.6fr 1.5fr 0.7fr 1.2fr 40px; gap:5px; margin-bottom:8px;";
@@ -270,6 +273,8 @@ document.getElementById('formula-form').onsubmit = async (e) => {
     const formulaData = {
         name: document.getElementById('name').value,
         baseAmount: parseFloat(document.getElementById('manual-base-input').value || 0),
+        creationType: document.getElementById('creation-type').value,
+        inspiredName: document.getElementById('inspired-name').value,
         composition,
         uid: auth.currentUser.uid,
         public: document.getElementById('public-checkbox').checked,
@@ -279,7 +284,6 @@ document.getElementById('formula-form').onsubmit = async (e) => {
     if (editFormulaId) {
         await updateDoc(doc(db, "formulas", editFormulaId), formulaData);
         editFormulaId = null;
-        document.querySelector('#page-create h2').innerText = "New Formula";
     } else {
         await addDoc(collection(db, "formulas"), { ...formulaData, createdAt: serverTimestamp() });
     }
@@ -290,17 +294,15 @@ document.getElementById('formula-form').onsubmit = async (e) => {
 document.getElementById('inventory-form').onsubmit = async (e) => {
     e.preventDefault();
     const data = {
-        name: document.getElementById('inv-name').value.trim(),
+        name: document.getElementById('inv-name').value,
         qty: parseFloat(document.getElementById('inv-qty').value),
         price: parseFloat(document.getElementById('inv-price').value),
         size: parseFloat(document.getElementById('inv-size').value),
         uid: auth.currentUser.uid
     };
-
     if (editInventoryId) {
         await updateDoc(doc(db, "inventory", editInventoryId), data);
         editInventoryId = null;
-        document.querySelector('#inventory-form button').innerText = "Add to Stockroom";
     } else {
         await addDoc(collection(db, "inventory"), data);
     }
@@ -310,15 +312,14 @@ document.getElementById('inventory-form').onsubmit = async (e) => {
 
 // --- 5. INITIALIZATION ---
 
+document.getElementById('creation-type').onchange = () => window.toggleInspiredField();
+
 onAuthStateChanged(auth, (user) => {
-    const brandSpan = document.querySelector('.brand span');
     document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
     document.getElementById('user-info').style.display = user ? 'flex' : 'none';
     if (user) {
-        if (brandSpan) brandSpan.innerText = user.displayName.toUpperCase();
-        if (document.getElementById('user-avatar')) document.getElementById('user-avatar').src = user.photoURL;
-    } else {
-        if (brandSpan) brandSpan.innerText = "FRAGRANCE LAB";
+        document.querySelector('.brand span').innerText = user.displayName.toUpperCase();
+        document.getElementById('user-avatar').src = user.photoURL;
     }
     setActivePage('home');
 });
