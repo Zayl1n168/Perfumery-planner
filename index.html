@@ -42,15 +42,28 @@
             <form id="formula-form">
                 <input type="text" id="name" placeholder="Formula Name" required>
                 
+                <div class="panel-sub">
+                    <label style="font-size: 0.8rem; font-weight: bold;">Creation Type</label>
+                    <select id="creation-type">
+                        <option value="Original">Original Creation</option>
+                        <option value="Inspired">Inspired By</option>
+                    </select>
+                    
+                    <div id="inspired-box" style="display:none; margin-top:10px;">
+                        <label style="font-size: 0.8rem; font-weight: bold;">Inspired by (Fragrance Name):</label>
+                        <input type="text" id="inspired-name" placeholder="e.g. Baccarat Rouge 540">
+                    </div>
+                </div>
+
                 <div class="base-input-box">
-                    <label>Perfume Base / Alcohol (mL)</label>
+                    <label style="font-size: 0.8rem; font-weight: bold;">Perfume Base / Alcohol (mL)</label>
                     <input type="number" id="manual-base-input" step="0.1" placeholder="e.g. 8.0" required>
                 </div>
 
                 <div id="ingredient-rows-container"></div>
                 <button type="button" id="add-row-btn" class="secondary-btn">+ Add Material</button>
                 
-                <label class="checkbox-container">
+                <label class="checkbox-container" style="display: block; margin: 15px 0;">
                     <input type="checkbox" id="public-checkbox"> Make Public
                 </label>
                 <button type="submit" class="primary-btn">Save Formula</button>
