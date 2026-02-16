@@ -16,18 +16,17 @@ const firebaseConfig = {
   appId: "1:117069368025:web:97d3d5398c082946284cc8"
 };
 
-// Initialize Firebase
+// 1. INITIALIZE WITH STABLE CONNECTION SETTINGS
 const app = initializeApp(firebaseConfig);
-
-// FIX: Force long polling to stop the 'Listen' stream error
 const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
+  experimentalForceLongPolling: true, // Forces standard HTTP traffic
+  useFetchStreams: false              // Prevents the "undefined" stream error
 });
 
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// --- STATE MANAGEMENT ---
+// 2. STATE MANAGEMENT
 let inventoryCache = {}; 
 let accordCache = []; 
 let editFormulaId = null; 
@@ -35,7 +34,7 @@ let currentMode = "perfume";
 
 const ACCORDS = ['Citrus', 'Floral', 'Woody', 'Fresh', 'Sweet', 'Spicy', 'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy'];
 
-// --- DATA SYNC ---
+// 3. DATA SYNC (Inventory & Accords)
 async function syncAllData() {
     if (!auth.currentUser) return;
     try {
@@ -50,17 +49,17 @@ async function syncAllData() {
         accordCache = [];
         accSnap.forEach(d => accordCache.push(d.data().name));
     } catch (e) {
-        console.warn("Syncing... (Database may be empty)");
+        console.warn("Syncing...");
     }
 }
 
-// --- FEED LOGIC ---
+// 4. MAIN LOAD FUNCTION
 async function loadFeed(type) {
     const containerId = type === 'home' ? 'cards' : (type === 'my' ? 'my-cards' : 'accord-list');
     const container = document.getElementById(containerId);
     if (!container) return;
     
-    container.innerHTML = '<p style="text-align:center; padding:20px;">Connecting to Lab...</p>';
+    container.innerHTML = '<p style="text-align:center; padding:20px;">Refreshing Lab Data...</p>';
 
     try {
         await syncAllData();
@@ -79,7 +78,7 @@ async function loadFeed(type) {
         container.innerHTML = '';
 
         if (snap.empty) {
-            container.innerHTML = '<p style="text-align:center; padding:20px; opacity:0.5;">No entries found.</p>';
+            container.innerHTML = '<p style="text-align:center; padding:30px; opacity:0.5;">No entries found in this section.</p>';
             return;
         }
 
@@ -91,50 +90,56 @@ async function loadFeed(type) {
                     <div style="display:flex; justify-content:space-between; align-items:start;">
                         <div>
                             <h3 style="margin:0;">${data.name}</h3>
-                            <small style="color:#6366f1;">${data.creationType || 'Original'}</small>
+                            <small style="color:#6366f1; font-weight:bold;">${data.creationType || 'Original'}${data.inspiredName ? ': ' + data.inspiredName : ''}</small>
                         </div>
-                        ${data.isAccord ? '<span class="accord-tag" style="background:#ede9fe; color:#7c3aed; padding:2px 6px; border-radius:4px; font-size:0.7rem;">Accord</span>' : ''}
+                        ${data.isAccord ? '<span class="accord-tag" style="background:#ede9fe; color:#7c3aed; padding:4px 8px; border-radius:6px; font-size:0.7rem; font-weight:bold;">ACCORD</span>' : ''}
                     </div>
-                    <div style="font-size:0.85rem; margin-top:10px;">
-                        ${comp.map(c => `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:2px 0;">
+                    <div style="font-size:0.85rem; margin-top:10px; border-top:1px solid #eee; padding-top:10px;">
+                        ${comp.map(c => `<div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                             <span>${c.name}</span><b>${c.ml}mL</b>
                         </div>`).join('')}
                     </div>
                     <div style="margin-top:15px; display:flex; gap:10px;">
-                        <button onclick="editFormula('${d.id}')" class="secondary-btn" style="flex:1;">Edit</button>
-                        <button onclick="deleteDocById('${d.id}', '${type}')" class="secondary-btn" style="flex:1; color:red;">Delete</button>
+                        <button onclick="editFormula('${d.id}')" class="secondary-btn" style="flex:1; margin:0;">Edit</button>
+                        <button onclick="deleteDocById('${d.id}', '${type}')" class="secondary-btn" style="flex:1; margin:0; color:#ef4444; border-color:#fee2e2;">Delete</button>
                     </div>
                 </div>`);
         });
     } catch (e) {
-        console.error("Load Error:", e);
-        container.innerHTML = `<p style="color:red; text-align:center; padding:20px;">Connection failed. Check your internet.</p>`;
+        console.error("Critical Load Error:", e);
+        container.innerHTML = `<div class="panel" style="text-align:center; color:#ef4444;">
+            <b>Connection Error</b><br><small>${e.message}</small>
+        </div>`;
     }
 }
 
+// 5. INVENTORY RENDERING
 async function renderInventoryList() {
     const list = document.getElementById('inventory-list');
     if (!list) return;
-    list.innerHTML = '<p style="text-align:center;">Checking stock...</p>';
+    list.innerHTML = '<p style="text-align:center; padding:20px;">Accessing Stockroom...</p>';
     try {
         const q = query(collection(db, "inventory"), where("uid", "==", auth.currentUser.uid));
         const snap = await getDocs(q);
         list.innerHTML = '';
-        if (snap.empty) list.innerHTML = '<p style="text-align:center; opacity:0.5;">Stockroom is empty.</p>';
+        if (snap.empty) {
+            list.innerHTML = '<p style="text-align:center; padding:20px; opacity:0.5;">Stockroom is empty.</p>';
+            return;
+        }
         snap.forEach(d => {
             const item = d.data();
             list.insertAdjacentHTML('beforeend', `
-                <div class="panel" style="display:flex; justify-content:space-between; align-items:center; padding:10px;">
-                    <div><b>${item.name}</b><br><small>${item.qty}mL in stock</small></div>
-                    <button onclick="deleteInventory('${d.id}')" style="color:red; background:none; border:none; font-weight:bold; cursor:pointer;">X</button>
+                <div class="panel" style="display:flex; justify-content:space-between; align-items:center; padding:12px; margin-bottom:8px;">
+                    <div><b style="color:#1e293b;">${item.name}</b><br><small style="color:#64748b;">${item.qty}mL remaining</small></div>
+                    <button onclick="deleteInventory('${d.id}')" style="color:#ef4444; background:#fff1f2; border:none; width:32px; height:32px; border-radius:50%; font-weight:bold; cursor:pointer;">&times;</button>
                 </div>`);
         });
     } catch (e) {
-        list.innerHTML = '<p>Error loading stock.</p>';
+        list.innerHTML = '<p style="color:red; text-align:center;">Error loading stock.</p>';
     }
 }
 
-// --- GLOBAL UTILS ---
+// 6. GLOBAL WINDOW ACTIONS
 window.setActivePage = (pageId) => {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
     const target = document.getElementById('page-' + pageId);
@@ -147,13 +152,6 @@ window.setActivePage = (pageId) => {
     if (pageId === 'my') loadFeed('my');
     if (pageId === 'accords') loadFeed('accords');
     if (pageId === 'inventory') renderInventoryList();
-};
-
-window.deleteInventory = async (id) => {
-    if (confirm("Delete this material?")) {
-        await deleteDoc(doc(db, "inventory", id));
-        renderInventoryList();
-    }
 };
 
 window.toggleInspiredField = () => {
@@ -172,7 +170,21 @@ window.prepareNewAccord = () => {
     window.toggleInspiredField();
 };
 
-// --- INIT ---
+window.deleteInventory = async (id) => {
+    if (confirm("Permanently remove from stockroom?")) {
+        await deleteDoc(doc(db, "inventory", id));
+        renderInventoryList();
+    }
+};
+
+window.deleteDocById = async (id, type) => {
+    if (confirm("Permanently delete this formula?")) {
+        await deleteDoc(doc(db, "formulas", id));
+        loadFeed(type);
+    }
+};
+
+// 7. INITIALIZATION & AUTH
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         const info = document.getElementById('user-info');
@@ -181,22 +193,46 @@ document.addEventListener('DOMContentLoaded', () => {
             loginBtn.style.display = 'none';
             info.style.display = 'flex';
             document.getElementById('user-avatar').src = user.photoURL;
-            document.querySelector('.brand span').innerText = user.displayName.toUpperCase();
+            document.querySelector('.brand span').innerText = user.displayName.split(' ')[0].toUpperCase();
             await syncAllData();
             setActivePage('home');
         } else {
             loginBtn.style.display = 'block';
             info.style.display = 'none';
+            setActivePage('home');
         }
     });
 
+    // Form Submissions
+    document.getElementById('inventory-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('inv-name').value,
+            qty: parseFloat(document.getElementById('inv-qty').value),
+            price: parseFloat(document.getElementById('inv-price').value),
+            size: parseFloat(document.getElementById('inv-size').value),
+            uid: auth.currentUser.uid
+        };
+        await addDoc(collection(db, "inventory"), data);
+        e.target.reset();
+        renderInventoryList();
+    };
+
+    // Nav Bindings
     document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
     document.getElementById('sign-out-btn').onclick = () => signOut(auth);
-    document.getElementById('menu-btn').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('show'); };
-    document.getElementById('drawer-overlay').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('show'); };
-    document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () => setActivePage(item.dataset.page); });
+    document.getElementById('menu-btn').onclick = () => { 
+        document.getElementById('drawer').classList.add('open'); 
+        document.getElementById('drawer-overlay').classList.add('show'); 
+    };
+    document.getElementById('drawer-overlay').onclick = () => { 
+        document.getElementById('drawer').classList.remove('open'); 
+        document.getElementById('drawer-overlay').classList.remove('show'); 
+    };
+    document.querySelectorAll('.drawer-item').forEach(item => { 
+        item.onclick = () => setActivePage(item.dataset.page); 
+    });
     
-    // Add logic for Creation Type Change
     const creationSelect = document.getElementById('creation-type');
     if (creationSelect) creationSelect.onchange = window.toggleInspiredField;
 
