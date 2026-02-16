@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fragrance Lab</title>
+    <title>Fragrance Lab Pro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,6 +22,7 @@
     <div id="drawer">
         <div class="drawer-item" data-page="home">🏠 Discovery Feed</div>
         <div class="drawer-item" data-page="my">📖 My Notebook</div>
+        <div class="drawer-item" data-page="accords">⚗️ Accord Lab</div>
         <div class="drawer-item" data-page="create">🧪 Create Formula</div>
         <div class="drawer-item" data-page="inventory">📦 Stockroom</div>
     </div>
@@ -37,47 +38,70 @@
             <div id="my-cards"></div>
         </section>
 
+        <section id="page-accords" class="page" style="display:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>Accord Lab</h2>
+                <button class="primary-btn" style="width:auto; padding:10px 20px;" id="new-accord-btn">+ New Accord</button>
+            </div>
+            <p style="font-size: 0.8rem; color: #64748b; margin-top: -15px; margin-bottom: 20px;">
+                Design concentrated bases (e.g., Rose Accord, Amber Base) to use as materials in your perfumes.
+            </p>
+            <div id="accord-list"></div>
+        </section>
+
         <section id="page-create" class="page" style="display:none;">
-            <h2>New Formula</h2>
+            <h2 id="create-page-title">New Formula</h2>
             <form id="formula-form">
-                <input type="text" id="name" placeholder="Formula Name" required>
+                <input type="text" id="name" placeholder="Formula Name (e.g. Midnight Jasmine)" required>
                 
                 <div class="panel-sub">
-                    <label style="font-size: 0.8rem; font-weight: bold;">Creation Type</label>
+                    <label style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #475569;">Creation Type</label>
                     <select id="creation-type">
                         <option value="Original">Original Creation</option>
                         <option value="Inspired">Inspired By</option>
                     </select>
                     
                     <div id="inspired-box" style="display:none; margin-top:10px;">
-                        <label style="font-size: 0.8rem; font-weight: bold;">Inspired by (Fragrance Name):</label>
-                        <input type="text" id="inspired-name" placeholder="e.g. Baccarat Rouge 540">
+                        <label style="font-size: 0.75rem; font-weight: bold; color: #475569;">Inspired by (Fragrance Name):</label>
+                        <input type="text" id="inspired-name" placeholder="e.g. Sauvage, Baccarat Rouge">
                     </div>
                 </div>
 
                 <div class="base-input-box">
-                    <label style="font-size: 0.8rem; font-weight: bold;">Perfume Base / Alcohol (mL)</label>
-                    <input type="number" id="manual-base-input" step="0.1" placeholder="e.g. 8.0" required>
+                    <label style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #2563eb;">Perfume Base / Alcohol (mL)</label>
+                    <p style="font-size: 0.7rem; color: #3b82f6; margin-bottom: 8px;">For Accords, keep this at 0 for 100% concentration.</p>
+                    <input type="number" id="manual-base-input" step="0.1" value="0" required>
                 </div>
 
                 <div id="ingredient-rows-container"></div>
-                <button type="button" id="add-row-btn" class="secondary-btn">+ Add Material</button>
+                <button type="button" id="add-row-btn" class="secondary-btn" style="border: 1px dashed #cbd5e1;">+ Add Material or Accord</button>
                 
-                <label class="checkbox-container" style="display: block; margin: 15px 0;">
-                    <input type="checkbox" id="public-checkbox"> Make Public
-                </label>
-                <button type="submit" class="primary-btn">Save Formula</button>
+                <div style="display: flex; align-items: center; gap: 10px; margin: 20px 0; padding: 10px; background: #fff; border-radius: 8px;">
+                    <input type="checkbox" id="public-checkbox" style="width: auto; margin: 0;">
+                    <label for="public-checkbox" style="font-size: 0.9rem; cursor: pointer;">Share with the community (Public)</label>
+                </div>
+
+                <button type="submit" class="primary-btn">Save to Lab</button>
             </form>
         </section>
 
         <section id="page-inventory" class="page" style="display:none;">
             <h2>Stockroom</h2>
             <form id="inventory-form" class="panel">
-                <input type="text" id="inv-name" placeholder="Material Name" required>
+                <input type="text" id="inv-name" placeholder="Material Name (e.g. Bergamot EO)" required>
                 <div class="inv-grid">
-                    <input type="number" id="inv-qty" placeholder="mL Stock" step="0.1" required>
-                    <input type="number" id="inv-price" placeholder="$ Paid" step="0.01" required>
-                    <input type="number" id="inv-size" placeholder="Bottle Size" step="0.1" required>
+                    <div>
+                        <label style="font-size:0.6rem;">QTY (mL)</label>
+                        <input type="number" id="inv-qty" placeholder="10" step="0.1" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.6rem;">PRICE ($)</label>
+                        <input type="number" id="inv-price" placeholder="15.00" step="0.01" required>
+                    </div>
+                    <div>
+                        <label style="font-size:0.6rem;">SIZE (mL)</label>
+                        <input type="number" id="inv-size" placeholder="10" step="0.1" required>
+                    </div>
                 </div>
                 <button type="submit" class="primary-btn">Add to Stockroom</button>
             </form>
