@@ -22,39 +22,29 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 let inventoryCache = {}; 
+let accordCache = []; // To store your custom accords for autocomplete
 let editFormulaId = null; 
-let editInventoryId = null; 
+let currentMode = "perfume"; // "perfume" or "accord"
 
-const ACCORDS = [
-  'Citrus', 'Floral', 'Woody', 'Fresh', 'Sweet', 'Spicy', 
-  'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy'
-];
+const ACCORDS = ['Citrus', 'Floral', 'Woody', 'Fresh', 'Sweet', 'Spicy', 'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy'];
 
-// --- 1. CORE LOGIC & CALCULATIONS ---
+// --- 1. CORE UTILITIES ---
 
-async function loadInventoryCache() {
+async function syncAllData() {
     if (!auth.currentUser) return;
-    try {
-        const q = query(collection(db, "inventory"), where("uid", "==", auth.currentUser.uid));
-        const snap = await getDocs(q);
-        inventoryCache = {};
-        snap.forEach(d => {
-            const item = d.data();
-            if (item.price && item.size) {
-                inventoryCache[item.name.toLowerCase().trim()] = parseFloat(item.price) / parseFloat(item.size);
-            }
-        });
-        renderInventoryList(snap);
-    } catch (e) { console.warn("Syncing..."); }
-}
-
-function calculateBatchCost(composition, multiplier = 1) {
-    let total = 0;
-    composition.forEach(ing => {
-        const costPerMl = inventoryCache[ing.name.toLowerCase().trim()] || 0;
-        total += (costPerMl * parseFloat(ing.ml)) * multiplier;
+    
+    // Sync Inventory
+    const invSnap = await getDocs(query(collection(db, "inventory"), where("uid", "==", auth.currentUser.uid)));
+    inventoryCache = {};
+    invSnap.forEach(d => {
+        const item = d.data();
+        inventoryCache[item.name.toLowerCase().trim()] = item.price / item.size;
     });
-    return total.toFixed(2);
+
+    // Sync Accords for Autocomplete
+    const accSnap = await getDocs(query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid), where("isAccord", "==", true)));
+    accordCache = [];
+    accSnap.forEach(d => accordCache.push(d.data().name));
 }
 
 function getScentProfile(comp) {
@@ -65,73 +55,17 @@ function getScentProfile(comp) {
     return { t: (top / total) * 100, h: (heart / total) * 100, b: (base / total) * 100 };
 }
 
-// --- 2. GLOBAL WINDOW FUNCTIONS ---
+// --- 2. WINDOW FUNCTIONS ---
 
-window.toggleInspiredField = () => {
-    const type = document.getElementById('creation-type').value;
-    document.getElementById('inspired-box').style.display = type === 'Inspired' ? 'block' : 'none';
-};
-
-window.updateVolumeScale = (id, baseJson, originalBaseAmt, targetVol) => {
-    const comp = JSON.parse(decodeURIComponent(baseJson));
-    const target = parseFloat(targetVol);
-    const origBase = parseFloat(originalBaseAmt);
-    const originalOilTotal = comp.reduce((sum, ing) => sum + parseFloat(ing.ml), 0);
-    const multiplier = target / (originalOilTotal + origBase);
-
-    comp.forEach((n, i) => {
-        const el = document.getElementById(`ml-${id}-${i}`);
-        if (el) el.innerText = (parseFloat(n.ml) * multiplier).toFixed(2) + 'mL';
-    });
-
-    document.getElementById(`base-${id}`).innerText = (origBase * multiplier).toFixed(2) + 'mL';
-    document.getElementById(`yield-${id}`).innerText = target + 'mL';
-    document.getElementById(`cost-${id}`).innerText = `Batch Cost: $${calculateBatchCost(comp, multiplier)}`;
-};
-
-window.editFormula = async (id) => {
-    const docSnap = await getDoc(doc(db, "formulas", id));
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        editFormulaId = id;
-        setActivePage('create');
-        document.getElementById('name').value = data.name;
-        document.getElementById('manual-base-input').value = data.baseAmount || 0;
-        document.getElementById('creation-type').value = data.creationType || 'Original';
-        document.getElementById('inspired-name').value = data.inspiredName || '';
-        toggleInspiredField();
-        document.getElementById('public-checkbox').checked = data.public;
-        document.getElementById('ingredient-rows-container').innerHTML = '';
-        data.composition.forEach(item => createRow(item));
-        document.querySelector('#page-create h2').innerText = "Edit Formula";
-    }
-};
-
-window.editInventory = async (id) => {
-    const docSnap = await getDoc(doc(db, "inventory", id));
-    if (docSnap.exists()) {
-        const data = docSnap.data();
-        editInventoryId = id;
-        document.getElementById('inv-name').value = data.name;
-        document.getElementById('inv-qty').value = data.qty;
-        document.getElementById('inv-price').value = data.price;
-        document.getElementById('inv-size').value = data.size;
-        document.querySelector('#inventory-form button').innerText = "Update Material";
-    }
-};
-
-window.deleteDocById = async (id) => {
-    if (confirm("Delete this formula?")) {
-        await deleteDoc(doc(db, "formulas", id));
-        loadFeed('my');
-    }
-};
-
-window.deleteInventory = async (id) => {
-    if (confirm("Remove from stockroom?")) {
-        await deleteDoc(doc(db, "inventory", id));
-        loadInventoryCache();
-    }
+window.prepareNewAccord = () => {
+    currentMode = "accord";
+    editFormulaId = null;
+    setActivePage('create');
+    document.getElementById('formula-form').reset();
+    document.querySelector('#page-create h2').innerText = "New Accord (100mL Scale)";
+    document.getElementById('manual-base-input').value = 0;
+    document.getElementById('creation-type').value = "Original";
+    window.toggleInspiredField();
 };
 
 window.setActivePage = (pageId) => {
@@ -139,24 +73,28 @@ window.setActivePage = (pageId) => {
     document.getElementById('page-' + pageId).style.display = 'block';
     document.getElementById('drawer').classList.remove('open');
     document.getElementById('drawer-overlay').classList.remove('show');
+    
     if (pageId === 'home') loadFeed('home');
     if (pageId === 'my') loadFeed('my');
-    if (pageId === 'inventory') loadInventoryCache();
+    if (pageId === 'accords') loadFeed('accords');
+    if (pageId === 'inventory') syncAllData();
 };
 
-// --- 3. UI RENDERING ---
+// --- 3. UI RENDERING (FEED) ---
 
 async function loadFeed(type) {
-    const container = document.getElementById(type === 'home' ? 'cards' : 'my-cards');
+    const containerId = type === 'home' ? 'cards' : (type === 'my' ? 'my-cards' : 'accord-list');
+    const container = document.getElementById(containerId);
     if (!container) return;
-    container.innerHTML = '<p style="text-align:center; padding:20px;">Updating Lab...</p>';
+    container.innerHTML = '<p style="text-align:center;">Loading...</p>';
 
     try {
-        await loadInventoryCache();
-        const q = type === 'home' 
-            ? query(collection(db, "formulas"), where("public", "==", true))
-            : query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid));
-        
+        await syncAllData();
+        let q;
+        if (type === 'home') q = query(collection(db, "formulas"), where("public", "==", true), where("isAccord", "==", false));
+        else if (type === 'my') q = query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid), where("isAccord", "==", false));
+        else if (type === 'accords') q = query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid), where("isAccord", "==", true));
+
         const snap = await getDocs(q);
         container.innerHTML = '';
 
@@ -165,81 +103,37 @@ async function loadFeed(type) {
             const comp = data.composition || [];
             const profile = getScentProfile(comp);
             const manualBase = parseFloat(data.baseAmount || 0);
-            const compJson = encodeURIComponent(JSON.stringify(comp));
             const oilTotal = comp.reduce((sum, ing) => sum + parseFloat(ing.ml), 0);
             const totalVol = oilTotal + manualBase;
-            const concentration = ((oilTotal / totalVol) * 100).toFixed(1);
-
-            const typeTag = data.creationType === 'Inspired' 
-                ? `<div style="font-size:0.75rem; color:#6366f1; font-weight:bold; margin-top:-5px; margin-bottom:10px;">✨ Inspired by: ${data.inspiredName}</div>`
-                : `<div style="font-size:0.75rem; color:#10b981; font-weight:bold; margin-top:-5px; margin-bottom:10px;">🌿 Original Creation</div>`;
 
             container.insertAdjacentHTML('beforeend', `
                 <div class="panel">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3 style="margin:0;">${data.name}</h3>
-                        <span style="font-size:0.7rem; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:12px;">${concentration}% Conc.</span>
+                    <div style="display:flex; justify-content:space-between;">
+                        <h3 style="margin:0;">${data.isAccord ? '⚗️ ' : ''}${data.name}</h3>
+                        ${data.isAccord ? '<span class="accord-tag">Accord</span>' : ''}
                     </div>
-                    ${typeTag}
-
+                    
                     <div class="scent-bar-container">
                         <div class="scent-bar">
                             <div class="bar-segment" style="width:${profile.t}%; background:var(--top-note)"></div>
                             <div class="bar-segment" style="width:${profile.h}%; background:var(--heart-note)"></div>
                             <div class="bar-segment" style="width:${profile.b}%; background:var(--base-note)"></div>
                         </div>
-                        <div class="bar-labels">
-                            <span class="label-top">Top: ${profile.t.toFixed(0)}%</span>
-                            <span class="label-heart">Heart: ${profile.h.toFixed(0)}%</span>
-                            <span class="label-base">Base: ${profile.b.toFixed(0)}%</span>
-                        </div>
                     </div>
 
-                    <div style="font-size:0.8rem; margin-bottom:10px;">
-                        ${comp.map((c, i) => `
-                            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:4px 0;">
-                                <span>${c.name} <small style="color:#64748b">(${c.category})</small></span>
-                                <b id="ml-${d.id}-${i}">${c.ml}mL</b>
-                            </div>`).join('')}
-                        <div style="display:flex; justify-content:space-between; padding:4px 0; color:#b45309; font-weight:bold;">
-                            <span>Perfume Base</span>
-                            <b id="base-${d.id}">${manualBase.toFixed(2)}mL</b>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; border-top:1px solid #ddd; margin-top:5px; font-weight:bold;">
-                            <span>Total Yield</span>
-                            <b id="yield-${d.id}">${totalVol.toFixed(2)}mL</b>
-                        </div>
+                    <div style="font-size:0.8rem; margin:10px 0;">
+                        ${comp.map(c => `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:2px 0;">
+                            <span>${c.name}</span><b>${c.ml}mL</b>
+                        </div>`).join('')}
                     </div>
 
-                    <div id="cost-${d.id}" style="font-weight:bold; font-size:0.8rem; color:#16a34a; margin-bottom:10px;">Batch Cost: $${calculateBatchCost(comp)}</div>
-                    
-                    <input type="range" min="5" max="250" value="${totalVol}" step="1" style="width:100%;" 
-                        oninput="updateVolumeScale('${d.id}', '${compJson}', '${manualBase}', this.value)">
-                    
-                    <div style="display:flex; gap:10px; margin-top:15px;">
-                        ${type === 'my' ? `<button onclick="editFormula('${d.id}')" class="secondary-btn" style="margin:0; flex:1;">Edit</button>` : ''}
-                        ${type === 'my' ? `<button onclick="deleteDocById('${d.id}')" class="secondary-btn" style="margin:0; flex:1; background:#fee2e2; color:#b91c1c;">Delete</button>` : ''}
+                    <div style="display:flex; gap:10px;">
+                        <button onclick="editFormula('${d.id}')" class="secondary-btn" style="flex:1;">Edit</button>
+                        <button onclick="deleteDocById('${d.id}', '${type}')" class="secondary-btn" style="flex:1; color:red;">Delete</button>
                     </div>
                 </div>`);
         });
     } catch (e) { console.error(e); }
-}
-
-function renderInventoryList(snap) {
-    const list = document.getElementById('inventory-list');
-    if (!list) return;
-    list.innerHTML = '';
-    snap.forEach(d => {
-        const item = d.data();
-        list.insertAdjacentHTML('beforeend', `
-            <div class="panel" style="margin:5px 0; padding:12px; display:flex; justify-content:space-between; align-items:center;">
-                <div><b>${item.name}</b><br><small>$${(item.price/item.size).toFixed(2)}/mL</small></div>
-                <div style="display:flex; gap:8px;">
-                    <button onclick="editInventory('${d.id}')" style="background:#fbbf24; border:none; padding:6px 12px; border-radius:8px;">Edit</button>
-                    <button onclick="deleteInventory('${d.id}')" style="background:#ef4444; color:white; border:none; padding:6px 12px; border-radius:8px;">X</button>
-                </div>
-            </div>`);
-    });
 }
 
 // --- 4. FORM LOGIC ---
@@ -249,9 +143,16 @@ function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' })
     const div = document.createElement('div');
     div.className = 'ingredient-row';
     div.style = "display:grid; grid-template-columns: 0.6fr 1.5fr 0.7fr 1.2fr 40px; gap:5px; margin-bottom:8px;";
+    
+    // Create datalist for autocomplete
+    const listId = `list-${Math.random().toString(36).substr(2, 9)}`;
+    
     div.innerHTML = `
         <select class="ing-type"><option value="Top" ${data.type==='Top'?'selected':''}>T</option><option value="Heart" ${data.type==='Heart'?'selected':''}>H</option><option value="Base" ${data.type==='Base'?'selected':''}>B</option></select>
-        <input type="text" placeholder="Material" class="ing-name" value="${data.name}" required>
+        <input type="text" list="${listId}" placeholder="Material/Accord" class="ing-name" value="${data.name}" required>
+        <datalist id="${listId}">
+            ${accordCache.map(acc => `<option value="${acc} (Accord)">`).join('')}
+        </datalist>
         <input type="number" step="0.01" placeholder="mL" class="ing-ml" value="${data.ml}" required>
         <select class="ing-cat">${ACCORDS.map(a => `<option value="${a}" ${data.category===a?'selected':''}>${a}</option>`).join('')}</select>
         <button type="button" class="remove-row" style="background:#ef4444; color:white; border:none; border-radius:8px;">×</button>
@@ -275,6 +176,7 @@ document.getElementById('formula-form').onsubmit = async (e) => {
         baseAmount: parseFloat(document.getElementById('manual-base-input').value || 0),
         creationType: document.getElementById('creation-type').value,
         inspiredName: document.getElementById('inspired-name').value,
+        isAccord: currentMode === "accord",
         composition,
         uid: auth.currentUser.uid,
         public: document.getElementById('public-checkbox').checked,
@@ -283,47 +185,23 @@ document.getElementById('formula-form').onsubmit = async (e) => {
 
     if (editFormulaId) {
         await updateDoc(doc(db, "formulas", editFormulaId), formulaData);
-        editFormulaId = null;
     } else {
         await addDoc(collection(db, "formulas"), { ...formulaData, createdAt: serverTimestamp() });
     }
+    
+    currentMode = "perfume"; // Reset to default
     document.getElementById('formula-form').reset();
-    setActivePage('my');
+    setActivePage(formulaData.isAccord ? 'accords' : 'my');
 };
 
-document.getElementById('inventory-form').onsubmit = async (e) => {
-    e.preventDefault();
-    const data = {
-        name: document.getElementById('inv-name').value,
-        qty: parseFloat(document.getElementById('inv-qty').value),
-        price: parseFloat(document.getElementById('inv-price').value),
-        size: parseFloat(document.getElementById('inv-size').value),
-        uid: auth.currentUser.uid
-    };
-    if (editInventoryId) {
-        await updateDoc(doc(db, "inventory", editInventoryId), data);
-        editInventoryId = null;
-    } else {
-        await addDoc(collection(db, "inventory"), data);
-    }
-    document.getElementById('inventory-form').reset();
-    loadInventoryCache();
-};
-
-// --- 5. INITIALIZATION ---
-
-document.getElementById('creation-type').onchange = () => window.toggleInspiredField();
+// --- 5. INIT ---
 
 onAuthStateChanged(auth, (user) => {
-    document.getElementById('sign-in-btn').style.display = user ? 'none' : 'block';
-    document.getElementById('user-info').style.display = user ? 'flex' : 'none';
-    if (user) {
-        document.querySelector('.brand span').innerText = user.displayName.toUpperCase();
-        document.getElementById('user-avatar').src = user.photoURL;
-    }
+    if (user) syncAllData();
     setActivePage('home');
 });
 
+document.getElementById('new-accord-btn').onclick = () => window.prepareNewAccord();
 document.getElementById('add-row-btn').onclick = () => createRow();
 document.getElementById('menu-btn').onclick = () => { document.getElementById('drawer').classList.add('open'); document.getElementById('drawer-overlay').classList.add('show'); };
 document.getElementById('drawer-overlay').onclick = () => { document.getElementById('drawer').classList.remove('open'); document.getElementById('drawer-overlay').classList.remove('show'); };
