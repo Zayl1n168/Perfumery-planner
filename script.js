@@ -26,25 +26,30 @@ const db = initializeFirestore(app, {
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// 2. STATE & CONSTANTS
+// 2. STATE
 let inventoryCache = {}; 
 let editFormulaId = null; 
 let currentMode = "perfume"; 
 
 const ACCORDS = ['Citrus', 'Floral', 'Woody', 'Fresh', 'Sweet', 'Spicy', 'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy'];
 
-// 3. SCENT PROFILE CALCULATION (The Scaler/Top Bar Logic)
+// 3. CALCULATION HELPERS
 function getScentProfile(comp) {
     const total = comp.reduce((sum, ing) => sum + parseFloat(ing.ml || 0), 0) || 1;
     const top = comp.filter(i => i.type === 'Top').reduce((s, i) => s + parseFloat(i.ml || 0), 0);
     const heart = comp.filter(i => i.type === 'Heart').reduce((s, i) => s + parseFloat(i.ml || 0), 0);
     const base = comp.filter(i => i.type === 'Base').reduce((s, i) => s + parseFloat(i.ml || 0), 0);
-    
-    return { 
-        t: (top / total) * 100, 
-        h: (heart / total) * 100, 
-        b: (base / total) * 100 
-    };
+    return { t: (top / total) * 100, h: (heart / total) * 100, b: (base / total) * 100 };
+}
+
+// Added this helper to get the cost
+function calculateBatchCost(comp) {
+    let total = 0;
+    comp.forEach(ing => {
+        const pricePerMl = inventoryCache[ing.name.toLowerCase().trim()] || 0;
+        total += (pricePerMl * parseFloat(ing.ml || 0));
+    });
+    return total.toFixed(2);
 }
 
 // 4. MAIN FEED LOADING
@@ -56,6 +61,7 @@ async function loadFeed(type) {
     container.innerHTML = '<p style="text-align:center; padding:20px;">Refreshing Lab...</p>';
 
     try {
+        await syncAllData(); // Ensure we have the latest prices
         let q = query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid));
         if (type === 'home') q = query(collection(db, "formulas"), where("public", "==", true));
 
@@ -71,15 +77,14 @@ async function loadFeed(type) {
             const data = d.data();
             const isAccord = data.isAccord === true;
             
-            // UI Filtering
             if (type === 'home' && isAccord) return;
             if (type === 'my' && isAccord) return;
             if (type === 'accords' && !isAccord) return;
 
             const comp = data.composition || [];
             const profile = getScentProfile(comp);
+            const cost = calculateBatchCost(comp); // Get the cost
             
-            // Inspired By Display Logic
             const label = (data.creationType === 'Inspired' && data.inspiredName) 
                 ? `Inspired by: <b>${data.inspiredName}</b>` 
                 : (data.creationType || 'Original');
@@ -100,6 +105,10 @@ async function loadFeed(type) {
                         <div style="width:${profile.b}%; background:#60a5fa"></div>
                     </div>
 
+                    <div style="font-size:0.85rem; margin-bottom:10px; color:#475569;">
+                        Batch Cost: <b>$${cost}</b>
+                    </div>
+
                     <div style="font-size:0.85rem;">
                         ${comp.map(c => `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #f8fafc; padding:3px 0;">
                             <span>${c.name}</span><b>${c.ml}mL</b>
@@ -114,11 +123,23 @@ async function loadFeed(type) {
         });
     } catch (e) {
         console.error(e);
-        container.innerHTML = `<p style="text-align:center; color:red;">Connection Error. Check internet.</p>`;
+        container.innerHTML = `<p style="text-align:center; color:red;">Connection Error.</p>`;
     }
 }
 
-// 5. INVENTORY & ROWS
+// 5. INVENTORY & SYNC
+async function syncAllData() {
+    if (!auth.currentUser) return;
+    try {
+        const invSnap = await getDocs(query(collection(db, "inventory"), where("uid", "==", auth.currentUser.uid)));
+        inventoryCache = {};
+        invSnap.forEach(d => {
+            const item = d.data();
+            inventoryCache[item.name.toLowerCase().trim()] = (item.price || 0) / (item.size || 1);
+        });
+    } catch (e) { console.warn("Syncing..."); }
+}
+
 async function renderInventoryList() {
     const list = document.getElementById('inventory-list');
     if (!list) return;
@@ -153,7 +174,7 @@ function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' })
     container.appendChild(div);
 }
 
-// 6. NAVIGATION & ACTIONS
+// 6. NAVIGATION & ACTIONS (Keeping standard)
 window.setActivePage = (pageId) => {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
     document.getElementById('page-' + pageId).style.display = 'block';
@@ -204,7 +225,7 @@ window.toggleInspiredField = () => {
     if (box) box.style.display = type === 'Inspired' ? 'block' : 'none';
 };
 
-// 7. INITIALIZATION
+// 7. INIT
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -213,9 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('user-avatar').src = user.photoURL;
             document.querySelector('.brand span').innerText = user.displayName.split(' ')[0].toUpperCase();
             setActivePage('home');
-        } else {
-            document.getElementById('sign-in-btn').style.display = 'block';
-            document.getElementById('user-info').style.display = 'none';
         }
     });
 
@@ -263,7 +281,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInventoryList();
     };
 
-    // Navigation & Buttons
     document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
     document.getElementById('sign-out-btn').onclick = () => signOut(auth);
     document.getElementById('menu-btn').onclick = () => document.getElementById('drawer').classList.add('open');
