@@ -2,112 +2,73 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fragrance Lab Pro</title>
-    <link rel="stylesheet" href="style.css">
-</head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfumery Planner</title>
+    </head>
 <body>
 
-    <nav class="navbar">
+    <header class="top-bar">
         <button id="menu-btn">☰</button>
-        <div class="brand"><span>FRAGRANCE LAB</span></div>
+        <div class="brand">PERFUMERY <span>PLANNER</span></div>
         <div id="user-info" style="display:none;">
-            <img id="user-avatar" src="" alt="User">
+            <img id="user-avatar" src="" alt="User" style="width:30px; border-radius:50%;">
             <button id="sign-out-btn">Logout</button>
         </div>
         <button id="sign-in-btn">Login</button>
-    </nav>
+    </header>
 
     <div id="drawer-overlay"></div>
-    <div id="drawer">
-        <div class="drawer-item" data-page="home">🏠 Discovery Feed</div>
-        <div class="drawer-item" data-page="my">📖 My Notebook</div>
-        <div class="drawer-item" data-page="accords">⚗️ Accord Lab</div>
-        <div class="drawer-item" data-page="create">🧪 Create Formula</div>
-        <div class="drawer-item" data-page="inventory">📦 Stockroom</div>
-    </div>
+    <nav id="drawer">
+        <div class="drawer-item" data-page="home">Discovery Feed</div>
+        <div class="drawer-item" data-page="my">My Notebook</div>
+        <div class="drawer-item" data-page="accords">My Accords</div>
+        <div class="drawer-item" data-page="inventory">Stockroom</div>
+        <button id="new-accord-btn">+ Create Accord</button>
+    </nav>
 
-    <main id="app">
-        <section id="page-home" class="page">
-            <h2>Public Formulas</h2>
-            <div id="cards"></div>
-        </section>
-
-        <section id="page-my" class="page" style="display:none;">
-            <h2>My Private Notebook</h2>
-            <div id="my-cards"></div>
-        </section>
-
-        <section id="page-accords" class="page" style="display:none;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2>Accord Lab</h2>
-                <button class="primary-btn" style="width:auto; padding:10px 20px;" id="new-accord-btn">+ New Accord</button>
-            </div>
-            <p style="font-size: 0.8rem; color: #64748b; margin-top: -15px; margin-bottom: 20px;">
-                Design concentrated bases (e.g., Rose Accord, Amber Base) to use as materials in your perfumes.
-            </p>
-            <div id="accord-list"></div>
-        </section>
-
-        <section id="page-create" class="page" style="display:none;">
-            <h2 id="create-page-title">New Formula</h2>
-            <form id="formula-form">
-                <input type="text" id="name" placeholder="Formula Name (e.g. Midnight Jasmine)" required>
-                
-                <div class="panel-sub">
-                    <label style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #475569;">Creation Type</label>
-                    <select id="creation-type">
-                        <option value="Original">Original Creation</option>
-                        <option value="Inspired">Inspired By</option>
-                    </select>
-                    
-                    <div id="inspired-box" style="display:none; margin-top:10px;">
-                        <label style="font-size: 0.75rem; font-weight: bold; color: #475569;">Inspired by (Fragrance Name):</label>
-                        <input type="text" id="inspired-name" placeholder="e.g. Sauvage, Baccarat Rouge">
-                    </div>
-                </div>
-
-                <div class="base-input-box">
-                    <label style="font-size: 0.75rem; font-weight: bold; text-transform: uppercase; color: #2563eb;">Perfume Base / Alcohol (mL)</label>
-                    <p style="font-size: 0.7rem; color: #3b82f6; margin-bottom: 8px;">For Accords, keep this at 0 for 100% concentration.</p>
-                    <input type="number" id="manual-base-input" step="0.1" value="0" required>
-                </div>
-
-                <div id="ingredient-rows-container"></div>
-                <button type="button" id="add-row-btn" class="secondary-btn" style="border: 1px dashed #cbd5e1;">+ Add Material or Accord</button>
-                
-                <div style="display: flex; align-items: center; gap: 10px; margin: 20px 0; padding: 10px; background: #fff; border-radius: 8px;">
-                    <input type="checkbox" id="public-checkbox" style="width: auto; margin: 0;">
-                    <label for="public-checkbox" style="font-size: 0.9rem; cursor: pointer;">Share with the community (Public)</label>
-                </div>
-
-                <button type="submit" class="primary-btn">Save to Lab</button>
-            </form>
-        </section>
-
-        <section id="page-inventory" class="page" style="display:none;">
-            <h2>Stockroom</h2>
-            <form id="inventory-form" class="panel">
-                <input type="text" id="inv-name" placeholder="Material Name (e.g. Bergamot EO)" required>
-                <div class="inv-grid">
-                    <div>
-                        <label style="font-size:0.6rem;">QTY (mL)</label>
-                        <input type="number" id="inv-qty" placeholder="10" step="0.1" required>
-                    </div>
-                    <div>
-                        <label style="font-size:0.6rem;">PRICE ($)</label>
-                        <input type="number" id="inv-price" placeholder="15.00" step="0.01" required>
-                    </div>
-                    <div>
-                        <label style="font-size:0.6rem;">SIZE (mL)</label>
-                        <input type="number" id="inv-size" placeholder="10" step="0.1" required>
-                    </div>
-                </div>
-                <button type="submit" class="primary-btn">Add to Stockroom</button>
+    <main>
+        <div id="page-home" class="page"><div id="cards"></div></div>
+        <div id="page-my" class="page"><div id="my-cards"></div></div>
+        <div id="page-accords" class="page"><div id="accord-list"></div></div>
+        <div id="page-inventory" class="page">
+            <form id="inventory-form">
+                <input type="text" id="inv-name" placeholder="Name" required>
+                <input type="number" id="inv-qty" placeholder="Qty (mL)" required>
+                <input type="number" id="inv-price" placeholder="Price ($)" required>
+                <input type="number" id="inv-size" placeholder="Container Size (mL)" required>
+                <button type="submit">Add to Stock</button>
             </form>
             <div id="inventory-list"></div>
-        </section>
+        </div>
+        <div id="page-create" class="page">
+            <form id="formula-form">
+                <input type="text" id="name" placeholder="Formula Name" required>
+                <select id="creation-type"><option value="Original">Original</option><option value="Inspired">Inspired</option></select>
+                <div id="inspired-box" style="display:none;"><input type="text" id="inspired-name" placeholder="Inspired By"></div>
+                <div id="ingredient-rows-container"></div>
+                <button type="button" id="add-row-btn">+ Add Ingredient</button>
+                <input type="checkbox" id="public-checkbox"> <label>Public</label>
+                <button type="submit">Save Formula</button>
+            </form>
+        </div>
     </main>
+
+    <div id="make-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:1000; padding:20px;">
+        <div id="setup-screen">
+            <h2>Set Batch Specs</h2>
+            <label>Total Volume (mL):</label>
+            <input type="number" id="target-vol" value="50" style="display:block; width:100%; margin-bottom:15px;">
+            <label>Concentration (%):</label>
+            <input type="number" id="target-conc" value="20" style="display:block; width:100%; margin-bottom:15px;">
+            <button onclick="startScaledBatch()" style="width:100%; padding:15px; background:#4f46e5; color:white;">Start Lab</button>
+            <button onclick="document.getElementById('make-modal').style.display='none'" style="width:100%; padding:15px; margin-top:10px;">Cancel</button>
+        </div>
+        <div id="step-screen" style="display:none;">
+            <h2 id="modal-title">Lab Assistant</h2>
+            <div id="modal-content" style="font-size: 1.5rem; text-align:center; padding:40px;"></div>
+            <button id="next-btn" style="width:100%; padding:15px;">Next Ingredient</button>
+        </div>
+    </div>
 
     <script type="module" src="script.js"></script>
 </body>
