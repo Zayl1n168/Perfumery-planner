@@ -164,20 +164,21 @@ window.setActivePage = (pageId) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Buttons (Login/Logout/Menu)
+    // Buttons
     document.getElementById('sign-in-btn').onclick = window.login;
     document.getElementById('sign-out-btn').onclick = window.logout;
+    
+    // NAVIGATION DRAWER LOGIC (Added to your original setup)
     document.getElementById('menu-btn').onclick = () => document.getElementById('drawer').classList.add('open');
     document.getElementById('drawer-overlay').onclick = () => document.getElementById('drawer').classList.remove('open');
-    document.getElementById('add-row-btn').onclick = () => createRow();
-
-    // Drawer Nav + Close Behavior
-    document.querySelectorAll('.drawer-item').forEach(item => {
-        item.onclick = () => {
-            window.setActivePage(item.dataset.page);
-            document.getElementById('drawer').classList.remove('open'); // FIX: Added this
-        };
+    document.querySelectorAll('.drawer-item').forEach(item => { 
+        item.onclick = () => { 
+            window.setActivePage(item.dataset.page); 
+            document.getElementById('drawer').classList.remove('open'); 
+        }; 
     });
+
+    document.getElementById('add-row-btn').onclick = () => createRow();
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
