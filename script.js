@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
-import { initializeFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, deleteDoc, doc, updateDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-auth.js";
+import { initializeFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, updateDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.4.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAe2qcNrIGYBh8VW_rp8ASRi1G6tkqUZMA",
@@ -14,6 +14,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { experimentalForceLongPolling: true, useFetchStreams: false });
 const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
 // --- STATE MANAGEMENT ---
 let inventoryCache = {}; 
@@ -21,6 +22,10 @@ let editFormulaId = null;
 let currentMode = "perfume"; 
 let currentBatch = { ingredients: [], index: 0, formulaId: null, name: '' };
 const ACCORDS = ['Citrus', 'Floral', 'Woody', 'Fresh', 'Sweet', 'Spicy', 'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy'];
+
+// --- AUTH HANDLERS ---
+window.login = () => signInWithPopup(auth, provider).catch(e => console.error("Login Failed:", e));
+window.logout = () => signOut(auth).then(() => location.reload());
 
 // --- MATH & HELPERS ---
 function getScentProfile(comp) {
@@ -40,17 +45,15 @@ function calculateBatchCost(comp) {
     return total.toFixed(2);
 }
 
-// --- LAB ASSISTANT (INTEGRATED) ---
+// --- LAB ASSISTANT ---
 window.startMakeMode = async (id) => {
-    try {
-        const docSnap = await getDoc(doc(db, "formulas", id));
-        if(!docSnap.exists()) return;
-        const data = docSnap.data();
-        currentBatch = { formulaId: id, name: data.name, originalIngredients: data.composition, ingredients: [], index: 0 };
-        document.getElementById('make-modal').style.display = 'block';
-        document.getElementById('setup-screen').style.display = 'block';
-        document.getElementById('step-screen').style.display = 'none';
-    } catch(e) { console.error(e); }
+    const docSnap = await getDoc(doc(db, "formulas", id));
+    if(!docSnap.exists()) return;
+    const data = docSnap.data();
+    currentBatch = { formulaId: id, name: data.name, originalIngredients: data.composition, ingredients: [], index: 0 };
+    document.getElementById('make-modal').style.display = 'block';
+    document.getElementById('setup-screen').style.display = 'block';
+    document.getElementById('step-screen').style.display = 'none';
 };
 
 window.startScaledBatch = () => {
@@ -87,7 +90,7 @@ function showStep() {
     }
 }
 
-// --- CORE UI & DATA ---
+// --- DATA LOGIC ---
 function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' }) {
     const container = document.getElementById('ingredient-rows-container');
     const div = document.createElement('div');
@@ -106,51 +109,36 @@ function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' })
 
 async function syncAllData() {
     if (!auth.currentUser) return;
-    try {
-        const invSnap = await getDocs(query(collection(db, "inventory"), where("uid", "==", auth.currentUser.uid)));
-        inventoryCache = {};
-        invSnap.forEach(d => {
-            const item = d.data();
-            inventoryCache[item.name.toLowerCase().trim()] = (item.price || 0) / (item.size || 1);
-        });
-    } catch(e) { console.error("Sync Error:", e); }
+    const invSnap = await getDocs(query(collection(db, "inventory"), where("uid", "==", auth.currentUser.uid)));
+    inventoryCache = {};
+    invSnap.forEach(d => {
+        const item = d.data();
+        inventoryCache[item.name.toLowerCase().trim()] = (item.price || 0) / (item.size || 1);
+    });
 }
 
 async function loadFeed(type) {
     const containerId = type === 'home' ? 'cards' : (type === 'my' ? 'my-cards' : 'accord-list');
     const container = document.getElementById(containerId);
     if (!container) return;
-    try {
-        await syncAllData();
-        const q = type === 'home' ? query(collection(db, "formulas"), where("public", "==", true)) : query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid));
-        const snap = await getDocs(q);
-        container.innerHTML = '';
-        snap.forEach(d => {
-            const data = d.data();
-            const isAccord = data.isAccord === true;
-            if (type === 'home' && isAccord) return;
-            if (type === 'my' && isAccord) return;
-            if (type === 'accords' && !isAccord) return;
-
-            const comp = data.composition || [];
-            const profile = getScentProfile(comp);
-            const cost = calculateBatchCost(comp);
-            container.insertAdjacentHTML('beforeend', `
-                <div class="panel">
-                    <h3>${data.name}</h3>
-                    <div style="display:flex; height:6px; background:#f1f5f9; margin:10px 0;">
-                        <div style="width:${profile.t}%; background:#fcd34d"></div>
-                        <div style="width:${profile.h}%; background:#f87171"></div>
-                        <div style="width:${profile.b}%; background:#60a5fa"></div>
-                    </div>
-                    <small>Batch Cost: $${cost}</small>
-                    <div style="margin-top:10px;">
-                        <button onclick="startMakeMode('${d.id}')">Make</button>
-                        <button onclick="editFormula('${d.id}')">Edit</button>
-                    </div>
-                </div>`);
-        });
-    } catch (e) { console.error(e); }
+    await syncAllData();
+    const q = type === 'home' ? query(collection(db, "formulas"), where("public", "==", true)) : query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid));
+    const snap = await getDocs(q);
+    container.innerHTML = '';
+    snap.forEach(d => {
+        const data = d.data();
+        if ((type === 'home' && data.isAccord) || (type === 'my' && data.isAccord) || (type === 'accords' && !data.isAccord)) return;
+        const comp = data.composition || [];
+        const profile = getScentProfile(comp);
+        container.insertAdjacentHTML('beforeend', `
+            <div class="panel">
+                <h3>${data.name}</h3>
+                <div style="margin-top:10px;">
+                    <button onclick="startMakeMode('${d.id}')">Make</button>
+                    <button onclick="editFormula('${d.id}')">Edit</button>
+                </div>
+            </div>`);
+    });
 }
 
 // --- INITIALIZATION ---
@@ -163,11 +151,8 @@ window.editFormula = async (id) => {
         window.setActivePage('create');
         document.getElementById('name').value = data.name;
         document.getElementById('creation-type').value = data.creationType || 'Original';
-        document.getElementById('inspired-name').value = data.inspiredName || '';
-        document.getElementById('public-checkbox').checked = data.public || false;
         document.getElementById('ingredient-rows-container').innerHTML = '';
         (data.composition || []).forEach(item => createRow(item));
-        window.toggleInspiredField();
     }
 };
 
@@ -175,32 +160,29 @@ window.setActivePage = (pageId) => {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
     const target = document.getElementById('page-' + pageId);
     if(target) target.style.display = 'block';
-    if (pageId === 'home') loadFeed('home');
-    if (pageId === 'my') loadFeed('my');
-    if (pageId === 'accords') loadFeed('accords');
-};
-
-window.toggleInspiredField = () => {
-    const box = document.getElementById('inspired-box');
-    const type = document.getElementById('creation-type').value;
-    if (box) box.style.display = type === 'Inspired' ? 'block' : 'none';
+    if (pageId === 'home' || pageId === 'my' || pageId === 'accords') loadFeed(pageId);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Attach Buttons
+    document.getElementById('sign-in-btn').onclick = window.login;
+    document.getElementById('sign-out-btn').onclick = window.logout;
+    document.getElementById('menu-btn').onclick = () => document.getElementById('drawer').classList.add('open');
+    document.getElementById('drawer-overlay').onclick = () => document.getElementById('drawer').classList.remove('open');
+    document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () => window.setActivePage(item.dataset.page); });
+    document.getElementById('add-row-btn').onclick = () => createRow();
+
     onAuthStateChanged(auth, (user) => {
         if (user) {
             document.getElementById('sign-in-btn').style.display = 'none';
             document.getElementById('user-info').style.display = 'flex';
             window.setActivePage('home');
+        } else {
+            document.getElementById('sign-in-btn').style.display = 'block';
+            document.getElementById('user-info').style.display = 'none';
         }
     });
 
-    document.getElementById('menu-btn').onclick = () => document.getElementById('drawer').classList.add('open');
-    document.getElementById('drawer-overlay').onclick = () => document.getElementById('drawer').classList.remove('open');
-    document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () => window.setActivePage(item.dataset.page); });
-    document.getElementById('add-row-btn').onclick = () => createRow();
-    document.getElementById('creation-type').onchange = window.toggleInspiredField;
-    
     document.getElementById('formula-form').onsubmit = async (e) => {
         e.preventDefault();
         const rows = document.querySelectorAll('.ingredient-row');
@@ -210,24 +192,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ml: r.querySelector('.ing-ml').value,
             category: r.querySelector('.ing-cat').value
         }));
-
-        const fData = {
+        await addDoc(collection(db, "formulas"), {
             name: document.getElementById('name').value,
-            creationType: document.getElementById('creation-type').value,
-            inspiredName: document.getElementById('inspired-name').value,
-            isAccord: currentMode === "accord",
             composition,
             uid: auth.currentUser.uid,
-            public: document.getElementById('public-checkbox').checked,
-            updatedAt: serverTimestamp()
-        };
-
-        if (editFormulaId) {
-            await updateDoc(doc(db, "formulas", editFormulaId), fData);
-            editFormulaId = null;
-        } else {
-            await addDoc(collection(db, "formulas"), { ...fData, createdAt: serverTimestamp() });
-        }
-        window.setActivePage(fData.isAccord ? 'accords' : 'my');
+            createdAt: serverTimestamp()
+        });
+        alert("Saved!");
     };
 });
