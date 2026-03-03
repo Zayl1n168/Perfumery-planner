@@ -16,7 +16,6 @@ const firebaseConfig = {
   appId: "1:117069368025:web:97d3d5398c082946284cc8"
 };
 
-// 1. STABLE INITIALIZATION
 const app = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: true, 
@@ -26,14 +25,57 @@ const db = initializeFirestore(app, {
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// 2. STATE
+// --- STATE ---
 let inventoryCache = {}; 
 let editFormulaId = null; 
 let currentMode = "perfume"; 
 
 const ACCORDS = ['Citrus', 'Floral', 'Woody', 'Fresh', 'Sweet', 'Spicy', 'Gourmand', 'Animalic', 'Ozonic', 'Green', 'Resinous', 'Fruity', 'Earthy'];
 
-// 3. CALCULATION HELPERS
+// --- BATCH LOGIC ---
+window.startMakeMode = async (id, name) => {
+    const batchName = prompt("Name this batch:", name + " - " + new Date().toLocaleDateString());
+    if (batchName) {
+        await addDoc(collection(db, "batches"), {
+            formulaId: id,
+            batchName: batchName,
+            createdAt: serverTimestamp(),
+            uid: auth.currentUser.uid
+        });
+        alert("Batch started!");
+    }
+};
+
+async function loadBatches() {
+    const list = document.getElementById('batch-list');
+    list.innerHTML = 'Loading...';
+    const q = query(collection(db, "batches"), where("uid", "==", auth.currentUser.uid));
+    const snap = await getDocs(q);
+    list.innerHTML = '';
+    
+    if (snap.empty) list.innerHTML = '<p style="text-align:center;">No batches found.</p>';
+
+    snap.forEach(d => {
+        const data = d.data();
+        const created = data.createdAt ? data.createdAt.toDate() : new Date();
+        const diff = Math.floor((new Date() - created) / (1000 * 60 * 60 * 24));
+        list.insertAdjacentHTML('beforeend', `
+            <div class="batch-panel">
+                <h3>${data.batchName}</h3>
+                <div class="maceration-badge">Macerating for ${diff} days</div>
+                <button onclick="deleteBatch('${d.id}')" class="secondary-btn" style="color:red; width:auto; padding:5px 10px; border:none; background:#fee2e2;">Delete</button>
+            </div>`);
+    });
+}
+
+window.deleteBatch = async (id) => {
+    if(confirm("Delete batch?")) {
+        await deleteDoc(doc(db, "batches", id));
+        loadBatches();
+    }
+};
+
+// --- CALCULATION HELPERS ---
 function getScentProfile(comp) {
     const total = comp.reduce((sum, ing) => sum + parseFloat(ing.ml || 0), 0) || 1;
     const top = comp.filter(i => i.type === 'Top').reduce((s, i) => s + parseFloat(i.ml || 0), 0);
@@ -42,7 +84,6 @@ function getScentProfile(comp) {
     return { t: (top / total) * 100, h: (heart / total) * 100, b: (base / total) * 100 };
 }
 
-// Added this helper to get the cost
 function calculateBatchCost(comp) {
     let total = 0;
     comp.forEach(ing => {
@@ -52,16 +93,28 @@ function calculateBatchCost(comp) {
     return total.toFixed(2);
 }
 
-// 4. MAIN FEED LOADING
+// --- DATA LOGIC ---
+async function syncAllData() {
+    if (!auth.currentUser) return;
+    try {
+        const invSnap = await getDocs(query(collection(db, "inventory"), where("uid", "==", auth.currentUser.uid)));
+        inventoryCache = {};
+        invSnap.forEach(d => {
+            const item = d.data();
+            inventoryCache[item.name.toLowerCase().trim()] = (item.price || 0) / (item.size || 1);
+        });
+    } catch (e) { console.warn("Syncing..."); }
+}
+
 async function loadFeed(type) {
     const containerId = type === 'home' ? 'cards' : (type === 'my' ? 'my-cards' : 'accord-list');
     const container = document.getElementById(containerId);
     if (!container) return;
     
-    container.innerHTML = '<p style="text-align:center; padding:20px;">Refreshing Lab...</p>';
+    container.innerHTML = '<p style="text-align:center; padding:20px;">Refreshing...</p>';
 
     try {
-        await syncAllData(); // Ensure we have the latest prices
+        await syncAllData();
         let q = query(collection(db, "formulas"), where("uid", "==", auth.currentUser.uid));
         if (type === 'home') q = query(collection(db, "formulas"), where("public", "==", true));
 
@@ -83,8 +136,7 @@ async function loadFeed(type) {
 
             const comp = data.composition || [];
             const profile = getScentProfile(comp);
-            const cost = calculateBatchCost(comp); // Get the cost
-            
+            const cost = calculateBatchCost(comp);
             const label = (data.creationType === 'Inspired' && data.inspiredName) 
                 ? `Inspired by: <b>${data.inspiredName}</b>` 
                 : (data.creationType || 'Original');
@@ -96,28 +148,17 @@ async function loadFeed(type) {
                             <h3 style="margin:0;">${data.name || 'Untitled'}</h3>
                             <small style="color:#6366f1;">${label}</small>
                         </div>
-                        ${isAccord ? '<span class="accord-tag" style="background:#ede9fe; color:#7c3aed; padding:4px 8px; border-radius:6px; font-size:0.7rem; font-weight:bold;">ACCORD</span>' : ''}
                     </div>
-
                     <div style="display:flex; height:6px; border-radius:3px; overflow:hidden; margin:12px 0; background:#f1f5f9;">
                         <div style="width:${profile.t}%; background:#fcd34d"></div>
                         <div style="width:${profile.h}%; background:#f87171"></div>
                         <div style="width:${profile.b}%; background:#60a5fa"></div>
                     </div>
-
-                    <div style="font-size:0.85rem; margin-bottom:10px; color:#475569;">
-                        Batch Cost: <b>$${cost}</b>
-                    </div>
-
-                    <div style="font-size:0.85rem;">
-                        ${comp.map(c => `<div style="display:flex; justify-content:space-between; border-bottom:1px solid #f8fafc; padding:3px 0;">
-                            <span>${c.name}</span><b>${c.ml}mL</b>
-                        </div>`).join('')}
-                    </div>
-
+                    <div style="font-size:0.85rem; margin-bottom:10px; color:#475569;">Batch Cost: <b>$${cost}</b></div>
                     <div style="margin-top:15px; display:flex; gap:10px;">
-                        <button onclick="editFormula('${d.id}')" class="secondary-btn" style="flex:1;">Edit</button>
-                        <button onclick="deleteDocById('${d.id}', '${type}')" class="secondary-btn" style="flex:1; color:#ef4444;">Delete</button>
+                        <button onclick="startMakeMode('${d.id}', '${data.name}')" class="primary-btn">Make</button>
+                        <button onclick="editFormula('${d.id}')" class="secondary-btn">Edit</button>
+                        <button onclick="deleteDocById('${d.id}', '${type}')" class="secondary-btn" style="color:#ef4444;">Delete</button>
                     </div>
                 </div>`);
         });
@@ -125,19 +166,6 @@ async function loadFeed(type) {
         console.error(e);
         container.innerHTML = `<p style="text-align:center; color:red;">Connection Error.</p>`;
     }
-}
-
-// 5. INVENTORY & SYNC
-async function syncAllData() {
-    if (!auth.currentUser) return;
-    try {
-        const invSnap = await getDocs(query(collection(db, "inventory"), where("uid", "==", auth.currentUser.uid)));
-        inventoryCache = {};
-        invSnap.forEach(d => {
-            const item = d.data();
-            inventoryCache[item.name.toLowerCase().trim()] = (item.price || 0) / (item.size || 1);
-        });
-    } catch (e) { console.warn("Syncing..."); }
 }
 
 async function renderInventoryList() {
@@ -174,7 +202,7 @@ function createRow(data = { type: 'Top', name: '', ml: '', category: 'Floral' })
     container.appendChild(div);
 }
 
-// 6. NAVIGATION & ACTIONS (Keeping standard)
+// --- NAV & HELPERS ---
 window.setActivePage = (pageId) => {
     document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
     document.getElementById('page-' + pageId).style.display = 'block';
@@ -183,6 +211,7 @@ window.setActivePage = (pageId) => {
     if (pageId === 'home') loadFeed('home');
     if (pageId === 'my') loadFeed('my');
     if (pageId === 'accords') loadFeed('accords');
+    if (pageId === 'batches') loadBatches();
     if (pageId === 'inventory') renderInventoryList();
 };
 
@@ -201,7 +230,7 @@ window.editFormula = async (id) => {
         const container = document.getElementById('ingredient-rows-container');
         container.innerHTML = '';
         (data.composition || []).forEach(item => createRow(item));
-        if (typeof window.toggleInspiredField === "function") window.toggleInspiredField();
+        window.toggleInspiredField();
     }
 };
 
@@ -225,7 +254,7 @@ window.toggleInspiredField = () => {
     if (box) box.style.display = type === 'Inspired' ? 'block' : 'none';
 };
 
-// 7. INIT
+// --- INIT ---
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
@@ -284,7 +313,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('sign-in-btn').onclick = () => signInWithPopup(auth, provider);
     document.getElementById('sign-out-btn').onclick = () => signOut(auth);
     document.getElementById('menu-btn').onclick = () => document.getElementById('drawer').classList.add('open');
-    document.getElementById('drawer-overlay').onclick = () => document.getElementById('drawer').classList.remove('open');
+    document.getElementById('drawer-overlay').onclick = () => {
+        document.getElementById('drawer').classList.remove('open');
+        document.getElementById('drawer-overlay').classList.remove('show');
+    };
+    
     document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () => setActivePage(item.dataset.page); });
     document.getElementById('creation-type').onchange = window.toggleInspiredField;
     document.getElementById('add-row-btn').onclick = () => createRow();
