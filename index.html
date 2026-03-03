@@ -23,6 +23,7 @@
         <div class="drawer-item" data-page="home">Discovery Feed</div>
         <div class="drawer-item" data-page="my">My Notebook</div>
         <div class="drawer-item" data-page="accords">My Accords</div>
+        <div class="drawer-item" data-page="batches">My Batches</div>
         <div class="drawer-item" data-page="inventory">Stockroom</div>
         <div class="drawer-item" data-page="create">Create Formula</div>
         <button id="new-accord-btn" style="margin-top:20px; width:100%;">+ New Accord</button>
@@ -32,6 +33,7 @@
         <div id="page-home" class="page"><div id="cards"></div></div>
         <div id="page-my" class="page"><div id="my-cards"></div></div>
         <div id="page-accords" class="page"><div id="accord-list"></div></div>
+        <div id="page-batches" class="page"><div id="batch-list"></div></div>
         
         <div id="page-inventory" class="page">
             <form id="inventory-form" class="panel">
@@ -49,20 +51,14 @@
             <form id="formula-form" class="panel">
                 <input type="text" id="name" placeholder="Formula Name" required>
                 <input type="number" id="manual-base-input" placeholder="Manual Base Amount (mL)" step="0.1">
-                
                 <select id="creation-type">
                     <option value="Original">Original</option>
                     <option value="Inspired">Inspired</option>
                 </select>
-
                 <div id="inspired-box" style="display:none;">
                     <input type="text" id="inspired-name" placeholder="Inspired By (e.g. Creed Aventus)">
                 </div>
-
-                <div style="margin:10px 0;">
-                    <label><input type="checkbox" id="public-checkbox"> Make Public</label>
-                </div>
-
+                <div style="margin:10px 0;"><label><input type="checkbox" id="public-checkbox"> Make Public</label></div>
                 <div id="ingredient-rows-container"></div>
                 <button type="button" id="add-row-btn" class="secondary-btn">+ Add Ingredient</button>
                 <button type="submit" class="primary-btn">Save Formula</button>
