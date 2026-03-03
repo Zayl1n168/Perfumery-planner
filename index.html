@@ -8,14 +8,15 @@
 </head>
 <body>
 
-    <header class="top-bar">
+    <nav class="navbar">
         <button id="menu-btn">☰</button>
-        <div class="brand">PERFUMERY <span>PLANNER</span></div>
-        <div id="user-info" style="display:none;">
+        <div class="brand">PERFUMERY <span></span></div>
+        <div id="user-info" style="display:none; align-items:center; gap:10px;">
+            <img id="user-avatar" src="" style="width:30px; height:30px; border-radius:50%;">
             <button id="sign-out-btn">Logout</button>
         </div>
         <button id="sign-in-btn">Login</button>
-    </header>
+    </nav>
 
     <div id="drawer-overlay"></div>
     <nav id="drawer">
@@ -23,52 +24,51 @@
         <div class="drawer-item" data-page="my">My Notebook</div>
         <div class="drawer-item" data-page="accords">My Accords</div>
         <div class="drawer-item" data-page="inventory">Stockroom</div>
-        <div class="drawer-item" data-page="create">+ Create Formula</div>
+        <div class="drawer-item" data-page="create">Create Formula</div>
+        <button id="new-accord-btn" style="margin-top:20px; width:100%;">+ New Accord</button>
     </nav>
 
     <main>
         <div id="page-home" class="page"><div id="cards"></div></div>
         <div id="page-my" class="page"><div id="my-cards"></div></div>
         <div id="page-accords" class="page"><div id="accord-list"></div></div>
+        
         <div id="page-inventory" class="page">
-            <form id="inventory-form">
-                <input type="text" id="inv-name" placeholder="Name" required>
-                <input type="number" id="inv-qty" placeholder="Qty (mL)" required>
-                <input type="number" id="inv-price" placeholder="Price ($)" required>
-                <input type="number" id="inv-size" placeholder="Size (mL)" required>
-                <button type="submit">Add to Stock</button>
+            <form id="inventory-form" class="panel">
+                <h3>Add to Stock</h3>
+                <input type="text" id="inv-name" placeholder="Material Name" required>
+                <input type="number" id="inv-qty" placeholder="Quantity (mL)" step="0.1" required>
+                <input type="number" id="inv-price" placeholder="Price ($)" step="0.01" required>
+                <input type="number" id="inv-size" placeholder="Bottle Size (mL)" step="0.1" required>
+                <button type="submit" class="primary-btn">Add Item</button>
             </form>
             <div id="inventory-list"></div>
         </div>
+
         <div id="page-create" class="page">
-            <form id="formula-form">
+            <form id="formula-form" class="panel">
                 <input type="text" id="name" placeholder="Formula Name" required>
+                <input type="number" id="manual-base-input" placeholder="Manual Base Amount (mL)" step="0.1">
+                
                 <select id="creation-type">
                     <option value="Original">Original</option>
                     <option value="Inspired">Inspired</option>
                 </select>
-                <div id="inspired-box" style="display:none;"><input type="text" id="inspired-name" placeholder="Inspired By"></div>
+
+                <div id="inspired-box" style="display:none;">
+                    <input type="text" id="inspired-name" placeholder="Inspired By (e.g. Creed Aventus)">
+                </div>
+
+                <div style="margin:10px 0;">
+                    <label><input type="checkbox" id="public-checkbox"> Make Public</label>
+                </div>
+
                 <div id="ingredient-rows-container"></div>
-                <button type="button" id="add-row-btn">+ Add Ingredient</button>
-                <input type="checkbox" id="public-checkbox"> <label>Public</label>
-                <button type="submit">Save Formula</button>
+                <button type="button" id="add-row-btn" class="secondary-btn">+ Add Ingredient</button>
+                <button type="submit" class="primary-btn">Save Formula</button>
             </form>
         </div>
     </main>
-
-    <div id="make-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:1000; padding:20px;">
-        <div id="setup-screen">
-            <h2>Set Batch Specs</h2>
-            <input type="number" id="target-vol" value="50" placeholder="Volume (mL)">
-            <input type="number" id="target-conc" value="20" placeholder="Concentration (%)">
-            <button id="start-lab-btn">Start Lab</button>
-        </div>
-        <div id="step-screen" style="display:none;">
-            <h2 id="modal-title">Lab Assistant</h2>
-            <div id="modal-content"></div>
-            <button id="next-btn">Next Ingredient</button>
-        </div>
-    </div>
 
     <script type="module" src="script.js"></script>
 </body>
