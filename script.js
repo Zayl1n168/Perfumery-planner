@@ -164,13 +164,20 @@ window.setActivePage = (pageId) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Attach Buttons
+    // Buttons (Login/Logout/Menu)
     document.getElementById('sign-in-btn').onclick = window.login;
     document.getElementById('sign-out-btn').onclick = window.logout;
     document.getElementById('menu-btn').onclick = () => document.getElementById('drawer').classList.add('open');
     document.getElementById('drawer-overlay').onclick = () => document.getElementById('drawer').classList.remove('open');
-    document.querySelectorAll('.drawer-item').forEach(item => { item.onclick = () => window.setActivePage(item.dataset.page); });
     document.getElementById('add-row-btn').onclick = () => createRow();
+
+    // Drawer Nav + Close Behavior
+    document.querySelectorAll('.drawer-item').forEach(item => {
+        item.onclick = () => {
+            window.setActivePage(item.dataset.page);
+            document.getElementById('drawer').classList.remove('open'); // FIX: Added this
+        };
+    });
 
     onAuthStateChanged(auth, (user) => {
         if (user) {
