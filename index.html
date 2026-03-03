@@ -12,7 +12,6 @@
         <button id="menu-btn">☰</button>
         <div class="brand">PERFUMERY <span>PLANNER</span></div>
         <div id="user-info" style="display:none;">
-            <img id="user-avatar" src="" alt="User" style="width:30px; border-radius:50%;">
             <button id="sign-out-btn">Logout</button>
         </div>
         <button id="sign-in-btn">Login</button>
@@ -24,7 +23,7 @@
         <div class="drawer-item" data-page="my">My Notebook</div>
         <div class="drawer-item" data-page="accords">My Accords</div>
         <div class="drawer-item" data-page="inventory">Stockroom</div>
-        <button id="new-accord-btn">+ Create Accord</button>
+        <div class="drawer-item" data-page="create">+ Create Formula</div>
     </nav>
 
     <main>
@@ -36,7 +35,7 @@
                 <input type="text" id="inv-name" placeholder="Name" required>
                 <input type="number" id="inv-qty" placeholder="Qty (mL)" required>
                 <input type="number" id="inv-price" placeholder="Price ($)" required>
-                <input type="number" id="inv-size" placeholder="Container Size (mL)" required>
+                <input type="number" id="inv-size" placeholder="Size (mL)" required>
                 <button type="submit">Add to Stock</button>
             </form>
             <div id="inventory-list"></div>
@@ -44,7 +43,10 @@
         <div id="page-create" class="page">
             <form id="formula-form">
                 <input type="text" id="name" placeholder="Formula Name" required>
-                <select id="creation-type"><option value="Original">Original</option><option value="Inspired">Inspired</option></select>
+                <select id="creation-type">
+                    <option value="Original">Original</option>
+                    <option value="Inspired">Inspired</option>
+                </select>
                 <div id="inspired-box" style="display:none;"><input type="text" id="inspired-name" placeholder="Inspired By"></div>
                 <div id="ingredient-rows-container"></div>
                 <button type="button" id="add-row-btn">+ Add Ingredient</button>
@@ -57,17 +59,14 @@
     <div id="make-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:1000; padding:20px;">
         <div id="setup-screen">
             <h2>Set Batch Specs</h2>
-            <label>Total Volume (mL):</label>
-            <input type="number" id="target-vol" value="50" style="display:block; width:100%; margin-bottom:15px;">
-            <label>Concentration (%):</label>
-            <input type="number" id="target-conc" value="20" style="display:block; width:100%; margin-bottom:15px;">
-            <button onclick="startScaledBatch()" style="width:100%; padding:15px; background:#4f46e5; color:white;">Start Lab</button>
-            <button onclick="document.getElementById('make-modal').style.display='none'" style="width:100%; padding:15px; margin-top:10px;">Cancel</button>
+            <input type="number" id="target-vol" value="50" placeholder="Volume (mL)">
+            <input type="number" id="target-conc" value="20" placeholder="Concentration (%)">
+            <button id="start-lab-btn">Start Lab</button>
         </div>
         <div id="step-screen" style="display:none;">
             <h2 id="modal-title">Lab Assistant</h2>
-            <div id="modal-content" style="font-size: 1.5rem; text-align:center; padding:40px;"></div>
-            <button id="next-btn" style="width:100%; padding:15px;">Next Ingredient</button>
+            <div id="modal-content"></div>
+            <button id="next-btn">Next Ingredient</button>
         </div>
     </div>
 
