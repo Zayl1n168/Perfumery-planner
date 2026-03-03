@@ -3,77 +3,30 @@
     --bg-color: #f8fafc;
     --panel-bg: #ffffff;
     --text-main: #1e293b;
-    --top-note: #fcd34d;
-    --heart-note: #f87171;
-    --base-note: #60a5fa;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    margin: 0;
-    background-color: var(--bg-color);
-    color: var(--text-main);
-    line-height: 1.5;
-}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; }
 
 /* Navbar */
-.navbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    background: #1e293b;
-    color: white;
-    height: 60px;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-#user-avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; }
+.navbar { display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: #1e293b; color: white; height: 60px; position: sticky; top: 0; z-index: 100; }
+.brand { font-weight: bold; }
 
-/* Main UI */
-main { max-width: 600px; margin: 0 auto; padding: 20px; }
-.panel { 
-    background: white; padding: 20px; border-radius: 12px; 
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; 
-}
-
-/* Scent Family Bar */
-.scent-bar-container { margin: 15px 0; }
-.scent-bar {
-    display: flex; height: 12px; border-radius: 6px; overflow: hidden;
-    background: #e2e8f0; margin-bottom: 5px;
-}
-.bar-segment { transition: width 0.3s ease; }
-.bar-labels { display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: bold; }
-
-/* Form Elements */
-input, select {
-    width: 100%; padding: 12px; margin: 8px 0;
-    border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box;
-}
-.base-input-box {
-    background: #eff6ff; padding: 15px; border-radius: 10px;
-    margin-bottom: 20px; border: 1px dashed var(--brand-color);
-}
-.primary-btn {
-    background: var(--brand-color); color: white; border: none;
-    padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer;
-}
-.secondary-btn {
-    background: #f1f5f9; color: var(--text-main); border: none;
-    padding: 10px; width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer;
-}
-
-/* Drawer Fixes - Kept as is to match your nav logic */
-#drawer {
-    position: fixed; left: -280px; top: 0; width: 250px; height: 100%;
-    background: white; z-index: 1000; transition: 0.3s; padding: 20px;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-}
+/* Drawer */
+#drawer { position: fixed; left: -280px; top: 0; width: 250px; height: 100%; background: white; z-index: 1000; transition: 0.3s; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
 #drawer.open { left: 0; }
-#drawer-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    display: none; z-index: 999;
-}
+#drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; z-index: 999; }
 #drawer-overlay.show { display: block; }
+.drawer-item { padding: 15px 0; cursor: pointer; border-bottom: 1px solid #e2e8f0; }
+
+/* Main */
+main { max-width: 600px; margin: 0 auto; padding: 20px; }
+.page { display: none; }
+.panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+
+/* Inputs/Buttons */
+input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; }
+.primary-btn { background: var(--brand-color); color: white; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; }
+.secondary-btn { background: #f1f5f9; color: var(--text-main); border: none; padding: 10px; width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer; }
+
+/* Accord Tag */
+.accord-tag { display: inline-block; }
