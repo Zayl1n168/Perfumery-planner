@@ -16,7 +16,7 @@ body {
     line-height: 1.5;
 }
 
-/* Navbar & Drawer */
+/* Navbar */
 .navbar {
     display: flex;
     align-items: center;
@@ -30,19 +30,6 @@ body {
     z-index: 100;
 }
 #user-avatar { width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; }
-
-/* --- DRAWER FIXES ADDED HERE --- */
-#drawer {
-    position: fixed; left: -280px; top: 0; width: 250px; height: 100%;
-    background: white; z-index: 1000; transition: 0.3s; padding: 20px;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-}
-#drawer.open { left: 0; }
-#drawer-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-    display: none; z-index: 999;
-}
-#drawer-overlay.show { display: block; }
 
 /* Main UI */
 main { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -59,9 +46,6 @@ main { max-width: 600px; margin: 0 auto; padding: 20px; }
 }
 .bar-segment { transition: width 0.3s ease; }
 .bar-labels { display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: bold; }
-.label-top { color: #b45309; }
-.label-heart { color: #b91c1c; }
-.label-base { color: #1d4ed8; }
 
 /* Form Elements */
 input, select {
@@ -80,3 +64,16 @@ input, select {
     background: #f1f5f9; color: var(--text-main); border: none;
     padding: 10px; width: 100%; border-radius: 8px; margin: 10px 0; cursor: pointer;
 }
+
+/* Drawer Fixes - Kept as is to match your nav logic */
+#drawer {
+    position: fixed; left: -280px; top: 0; width: 250px; height: 100%;
+    background: white; z-index: 1000; transition: 0.3s; padding: 20px;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+#drawer.open { left: 0; }
+#drawer-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: none; z-index: 999;
+}
+#drawer-overlay.show { display: block; }
